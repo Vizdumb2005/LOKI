@@ -1,0 +1,130 @@
+id: number_prediction
+title: The Number
+description: >
+  Choose a number between 1 and 100 and keep it fixed in your mind.
+  LOKI will narrow a hundred possibilities down to one.
+hypothesis_space:
+  type: range
+  min: 1
+  max: 100
+prior: uniform
+termination:
+  entropy_threshold_bits: 0.25
+  max_turns: 10
+questions:
+  - id: q_first_digit
+    text: "What digit leads it — or is it a single digit?"
+    reliability: 0.95
+    answers:
+      - id: d1
+        label: "1"
+        predicate: {attr: first_digit, op: eq, value: 1}
+      - id: d2
+        label: "2"
+        predicate: {attr: first_digit, op: eq, value: 2}
+      - id: d3
+        label: "3"
+        predicate: {attr: first_digit, op: eq, value: 3}
+      - id: d4
+        label: "4"
+        predicate: {attr: first_digit, op: eq, value: 4}
+      - id: d5
+        label: "5"
+        predicate: {attr: first_digit, op: eq, value: 5}
+      - id: d6
+        label: "6"
+        predicate: {attr: first_digit, op: eq, value: 6}
+      - id: d7
+        label: "7"
+        predicate: {attr: first_digit, op: eq, value: 7}
+      - id: d8
+        label: "8"
+        predicate: {attr: first_digit, op: eq, value: 8}
+      - id: d9
+        label: "9"
+        predicate: {attr: first_digit, op: eq, value: 9}
+      - id: none
+        label: Single digit
+        predicate: {attr: first_digit, op: eq, value: 0}
+  - id: q_parity
+    text: "Is it even, or odd?"
+    reliability: 0.96
+    answers:
+      - id: even
+        label: Even
+        predicate: {attr: value, op: mod_eq, mod: 2, value: 0}
+      - id: odd
+        label: Odd
+        predicate: {attr: value, op: mod_eq, mod: 2, value: 1}
+  - id: q_div3
+    text: "When divided by three, what remains?"
+    reliability: 0.94
+    answers:
+      - id: rem0
+        label: Nothing — divisible by 3
+        predicate: {attr: value, op: mod_eq, mod: 3, value: 0}
+      - id: rem1
+        label: A remainder of 1
+        predicate: {attr: value, op: mod_eq, mod: 3, value: 1}
+      - id: rem2
+        label: A remainder of 2
+        predicate: {attr: value, op: mod_eq, mod: 3, value: 2}
+  - id: q_mod4
+    text: "Divide by four — what remains?"
+    reliability: 0.94
+    answers:
+      - id: m0
+        label: Nothing
+        predicate: {attr: value, op: mod_eq, mod: 4, value: 0}
+      - id: m1
+        label: One
+        predicate: {attr: value, op: mod_eq, mod: 4, value: 1}
+      - id: m2
+        label: Two
+        predicate: {attr: value, op: mod_eq, mod: 4, value: 2}
+      - id: m3
+        label: Three
+        predicate: {attr: value, op: mod_eq, mod: 4, value: 3}
+  - id: q_digitsum
+    text: "Sum its digits — is the total small, middling, or large?"
+    reliability: 0.9
+    answers:
+      - id: small
+        label: 3 or less
+        predicate: {attr: digit_sum, op: lte, value: 3}
+      - id: middle
+        label: 4 to 6
+        predicate: {attr: digit_sum, op: between, value: [4, 6]}
+      - id: large
+        label: 7 or more
+        predicate: {attr: digit_sum, op: gte, value: 7}
+  - id: q_square
+    text: "Is it a perfect square?"
+    reliability: 0.97
+    answers:
+      - id: "yes"
+        label: "Yes"
+        predicate: {attr: value, op: in, value: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]}
+      - id: "no"
+        label: "No"
+        predicate: {attr: value, op: not_in, value: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]}
+  - id: q_gt50
+    text: "Does it sit above or below the middle of the hundred?"
+    reliability: 0.97
+    answers:
+      - id: high
+        label: Above — 51 to 100
+        predicate: {attr: value, op: gt, value: 50}
+      - id: low
+        label: Below — 1 to 50
+        predicate: {attr: value, op: lte, value: 50}
+  - id: q_gt95
+    text: "Does it climb past ninety-five?"
+    reliability: 0.97
+    answers:
+      - id: "yes"
+        label: "Yes — 96 or higher"
+        predicate: {attr: value, op: gt, value: 95}
+      - id: "no"
+        label: "No — 95 or lower"
+        predicate: {attr: value, op: lte, value: 95}

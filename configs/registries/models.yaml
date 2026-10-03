@@ -1,0 +1,78 @@
+# LOKI Model Registry (machine-readable)
+# Narrative version: docs/registries/model-registry.md
+# Rules (plan §15): every third-party model records repo id, exact revision, license,
+# provenance, restrictions. "planned" entries have NO revision yet — a revision MUST be
+# pinned before first download/use, and license metadata re-verified at that moment.
+# Hosting on Hugging Face does NOT make a model usable.
+
+schema_version: 1
+updated: 2026-10-03
+
+components:
+  loki-hypothesis:
+    status: implemented
+    kind: classical
+    description: Bayesian hypothesis tracker + entropy/information-gain metrics (Stage A reference implementation)
+    code: services/hypothesis/
+
+  loki-policy:
+    status: implemented
+    kind: classical
+    description: Hand-designed information-gain question policy (Phase 1). Bandit/RL variants are Phase 4.
+    code: services/policy/
+
+  loki-language:
+    status: implemented
+    kind: classical
+    description: Deterministic template renderer with Loki persona. Receives structured state only; never estimates truth (Phase 5 replaces templates with the in-house dialogue model).
+    code: services/language/
+
+  loki-vision:
+    status: prototyped
+    phase: 2
+    description: In-browser face tracking + coarse gaze dwell on answer buttons (MediaPipe FaceLandmarker). Raw frames never leave the browser; only derived observation events are emitted.
+    runtime: apps/web/src/perception/gazeTracker.ts
+    third_party:
+      - repo_id: google/mediapipe-tasks-vision
+        license: Apache-2.0
+        revision: 1.0.1          # npm package + CDN wasm URL (apps/web/src/perception/gazeTracker.ts)
+        model_asset: face_landmarker.task (float16/1 via storage.googleapis.com, pinned URL)
+        notes: Runs client-side (GPU delegate, CPU fallback).
+
+  loki-audio:
+    status: prototyped
+    phase: 2
+    description: Push-to-talk mic capture (AudioWorklet, 16 kHz mono) feeding in-browser ASR. Raw audio never leaves the browser.
+    runtime: apps/web/src/perception/mic.ts
+
+  loki-asr:
+    status: prototyped
+    phase: 2
+    description: In-browser transcription of spoken answers via Transformers.js (WebGPU, WASM fallback). Transcript resolves to an answer through per-answer voice synonyms; the verbatim utterance is recorded on the answer event (consent-gated).
+    runtime: apps/web/src/perception/asr.ts
+    third_party:
+      - repo_id: openai/whisper-tiny.en (via onnx-community/whisper-tiny.en ONNX q8)
+        license: MIT            # verify the onnx-community conversion's license at first release
+        revision: null          # resolved at runtime from the Hub; pin before any redistribution
+    init_candidates:
+      - repo_id: openai/whisper-small
+        license: Apache-2.0
+        revision: null   # pin before first use
+      - repo_id: openai/whisper-large-v3-turbo
+        license: MIT
+        revision: null
+      - repo_id: ai4bharat/indic-conformer-600m-multilingual
+        license: MIT
+        revision: null
+        gated: true
+    description: Speech-to-text with Hindi/English/code-switch support (plan §4.1). English-only prototype in Phase 2; multilingual is Phase 5.
+
+  loki-fusion:
+    status: planned
+    phase: 3
+    description: Temporal multimodal fusion emitting structured session state (plan §4.4).
+
+  loki-calibrator:
+    status: planned
+    phase: 5
+    description: Independent calibration layer (ECE, Brier, log loss, reliability curves). Phase 1 approximates calibration with confidence-band phrasing in loki-language.

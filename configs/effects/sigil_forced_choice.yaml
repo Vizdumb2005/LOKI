@@ -1,0 +1,67 @@
+id: sigil_forced_choice
+title: The Sigil
+description: >
+  A quickworking effect. Six sigils are placed before you — the sun, the moon,
+  the key, the crown, the rose, and the skull. Fix one in your mind and guard it well.
+hypothesis_space:
+  type: enumerated
+  items:
+    - {id: sun,   name: The Sun,   day_sky: true,  night_sky: false, metal: false, opens_locks: false, royal: false, once_alive: false, petals: false, of_the_dead: false}
+    - {id: moon,  name: The Moon,  day_sky: false, night_sky: true,  metal: false, opens_locks: false, royal: false, once_alive: false, petals: false, of_the_dead: false}
+    - {id: key,   name: The Key,   day_sky: false, night_sky: false, metal: true,  opens_locks: true,  royal: false, once_alive: false, petals: false, of_the_dead: false}
+    - {id: crown, name: The Crown, day_sky: false, night_sky: false, metal: true,  opens_locks: false, royal: true,  once_alive: false, petals: false, of_the_dead: false}
+    - {id: rose,  name: The Rose,  day_sky: false, night_sky: false, metal: false, opens_locks: false, royal: false, once_alive: true,  petals: true,  of_the_dead: false}
+    - {id: skull, name: The Skull, day_sky: false, night_sky: false, metal: false, opens_locks: false, royal: false, once_alive: true,  petals: false, of_the_dead: true}
+prior: uniform
+termination:
+  entropy_threshold_bits: 0.25
+  max_turns: 8
+questions:
+  - id: q_metal
+    text: "Was it forged in metal?"
+    reliability: 0.97
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: metal, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: metal, op: eq, value: false}}
+  - id: q_once_alive
+    text: "Was it once alive?"
+    reliability: 0.97
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: once_alive, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: once_alive, op: eq, value: false}}
+  - id: q_day_sky
+    text: "Does it ride the daytime sky?"
+    reliability: 0.98
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: day_sky, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: day_sky, op: eq, value: false}}
+  - id: q_night_sky
+    text: "Does it hang in the night sky?"
+    reliability: 0.98
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: night_sky, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: night_sky, op: eq, value: false}}
+  - id: q_locks
+    text: "Does it open locks?"
+    reliability: 0.98
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: opens_locks, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: opens_locks, op: eq, value: false}}
+  - id: q_royal
+    text: "Is it worn by royalty?"
+    reliability: 0.98
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: royal, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: royal, op: eq, value: false}}
+  - id: q_petals
+    text: "Does it bear petals?"
+    reliability: 0.98
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: petals, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: petals, op: eq, value: false}}
+  - id: q_of_the_dead
+    text: "Does it belong to the dead?"
+    reliability: 0.97
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: of_the_dead, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: of_the_dead, op: eq, value: false}}

@@ -1,0 +1,122 @@
+id: card_prediction
+title: The Card
+description: >
+  Think of any playing card from a standard 52-card deck. Hold it in your mind.
+  LOKI will ask a handful of questions and name your card.
+hypothesis_space:
+  type: deck_52
+prior: uniform
+termination:
+  entropy_threshold_bits: 0.25
+  max_turns: 8
+observations:
+  # Schema v1.1: gaze dwell is WEAK evidence — which option the participant's
+  # eyes rest on before answering. Never committing, never advancing.
+  gaze_dwell:
+    reliability: 0.55
+    min_dwell_ms: 400
+questions:
+  - id: q_suit
+    text: "Which suit holds your card — hearts, diamonds, clubs, or spades?"
+    reliability: 0.96
+    answers:
+      - id: hearts
+        label: Hearts
+        voice: ["hearts", "heart"]
+        predicate: {attr: suit, op: eq, value: hearts}
+      - id: diamonds
+        label: Diamonds
+        voice: ["diamonds", "diamond"]
+        predicate: {attr: suit, op: eq, value: diamonds}
+      - id: clubs
+        label: Clubs
+        voice: ["clubs", "club"]
+        predicate: {attr: suit, op: eq, value: clubs}
+      - id: spades
+        label: Spades
+        voice: ["spades", "spade"]
+        predicate: {attr: suit, op: eq, value: spades}
+  - id: q_rank_bucket
+    text: "And its rank — where does it fall?"
+    reliability: 0.95
+    answers:
+      - id: r23
+        label: Two or Three
+        voice: ["two", "three", "2", "3"]
+        predicate: {attr: rank_value, op: in, value: [2, 3]}
+      - id: r45
+        label: Four or Five
+        voice: ["four", "five", "4", "5"]
+        predicate: {attr: rank_value, op: in, value: [4, 5]}
+      - id: r67
+        label: Six or Seven
+        voice: ["six", "seven", "6", "7"]
+        predicate: {attr: rank_value, op: in, value: [6, 7]}
+      - id: r89
+        label: Eight or Nine
+        voice: ["eight", "nine", "8", "9"]
+        predicate: {attr: rank_value, op: in, value: [8, 9]}
+      - id: r10
+        label: Ten
+        voice: ["ten", "10"]
+        predicate: {attr: rank_value, op: eq, value: 10}
+      - id: rface
+        label: Jack, Queen or King
+        voice: ["jack", "queen", "king", "face", "picture"]
+        predicate: {attr: rank_value, op: in, value: [11, 12, 13]}
+      - id: race
+        label: Ace
+        voice: ["ace"]
+        predicate: {attr: rank_value, op: eq, value: 14}
+  - id: q_rank_parity
+    text: "Is its rank even or odd?"
+    reliability: 0.95
+    answers:
+      - id: even
+        label: Even
+        voice: ["even"]
+        predicate: {attr: rank_value, op: mod_eq, mod: 2, value: 0}
+      - id: odd
+        label: Odd
+        voice: ["odd"]
+        predicate: {attr: rank_value, op: mod_eq, mod: 2, value: 1}
+  - id: q_high_card
+    text: "Does its rank sit at King or Ace — or lower?"
+    reliability: 0.95
+    answers:
+      - id: high
+        label: King or Ace
+        voice: ["king", "ace", "high", "top"]
+        predicate: {attr: rank_value, op: gte, value: 13}
+      - id: low
+        label: Queen or lower
+        voice: ["queen", "lower", "low", "below"]
+        predicate: {attr: rank_value, op: lt, value: 13}
+  - id: q_rank_mod3
+    text: "Its rank, counted in threes — where does the remainder fall?"
+    reliability: 0.94
+    answers:
+      - id: m0
+        label: Divisible by three
+        voice: ["zero", "nothing", "divisible", "none"]
+        predicate: {attr: rank_value, op: mod_eq, mod: 3, value: 0}
+      - id: m1
+        label: Remainder one
+        voice: ["one", "1"]
+        predicate: {attr: rank_value, op: mod_eq, mod: 3, value: 1}
+      - id: m2
+        label: Remainder two
+        voice: ["two", "2"]
+        predicate: {attr: rank_value, op: mod_eq, mod: 3, value: 2}
+  - id: q_color
+    text: "Is your card red, or black?"
+    reliability: 0.97
+    answers:
+      - id: red
+        label: Red
+        voice: ["red"]
+        predicate: {attr: color, op: eq, value: red}
+      - id: black
+        label: Black
+        voice: ["black"]
+        predicate: {attr: color, op: eq, value: black}

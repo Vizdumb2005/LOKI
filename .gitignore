@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+coverage/
+htmlcov/
+
+# Node / frontend
+node_modules/
+apps/web/dist/
+*.local
+
+# Environment & secrets
+.env
+.env.*
+
+# Consent-gated session ledger (data only ever written on explicit user consent)
+data/
+
+# Datasets: raw media and processed artifacts are never committed (privacy + size).
+# Manifests, schemas, and LICENSES.md ARE tracked.
+datasets/raw/*
+!datasets/raw/.gitkeep
+datasets/processed/*
+!datasets/processed/.gitkeep
+
+# Model weights / artifacts (registry in configs/ is tracked, weights are not)
+models/**/*.pt
+models/**/*.onnx
+models/**/*.safetensors
+models/**/*.bin
+
+# Experiment outputs
+experiments/outputs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ZCode local state
+.zcode/
+.zcodeignore

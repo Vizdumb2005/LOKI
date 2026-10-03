@@ -1,0 +1,147 @@
+id: animal_guess
+title: The Beast
+description: >
+  Think of any animal — from a barnyard hen to a deep-ocean hunter.
+  LOKI will ask about its nature and name the beast you hold in mind.
+hypothesis_space:
+  type: enumerated
+  items:
+    # mammals
+    - {id: dog,       name: Dog,       cls: mammal,   water: false, fly: false, big: false, meat: false, dom: true,  farm: false, night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: cat,       name: Cat,       cls: mammal,   water: false, fly: false, big: false, meat: true,  dom: true,  farm: false, night: true,  eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: horse,     name: Horse,     cls: mammal,   water: false, fly: false, big: true,  meat: false, dom: true,  farm: true,  night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: true,  hibernates: false, climbs: false}
+    - {id: cow,       name: Cow,       cls: mammal,   water: false, fly: false, big: true,  meat: false, dom: true,  farm: true,  night: false, eggs: false, stripes: false, venom: false, horns: true,  ridden: false, hibernates: false, climbs: false}
+    - {id: sheep,     name: Sheep,     cls: mammal,   water: false, fly: false, big: false, meat: false, dom: true,  farm: true,  night: false, eggs: false, stripes: false, venom: false, horns: true,  ridden: false, hibernates: false, climbs: false}
+    - {id: pig,       name: Pig,       cls: mammal,   water: false, fly: false, big: true,  meat: false, dom: true,  farm: true,  night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: rabbit,    name: Rabbit,    cls: mammal,   water: false, fly: false, big: false, meat: false, dom: true,  farm: true,  night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: elephant,  name: Elephant,  cls: mammal,   water: false, fly: false, big: true,  meat: false, dom: false, farm: false, night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: true,  hibernates: false, climbs: false}
+    - {id: lion,      name: Lion,      cls: mammal,   water: false, fly: false, big: true,  meat: true,  dom: false, farm: false, night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: tiger,     name: Tiger,     cls: mammal,   water: false, fly: false, big: true,  meat: true,  dom: false, farm: false, night: true,  eggs: false, stripes: true,  venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: bear,      name: Bear,      cls: mammal,   water: false, fly: false, big: true,  meat: true,  dom: false, farm: false, night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: true,  climbs: false}
+    - {id: fox,       name: Fox,       cls: mammal,   water: false, fly: false, big: false, meat: true,  dom: false, farm: false, night: true,  eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: bat,       name: Bat,       cls: mammal,   water: false, fly: true,  big: false, meat: true,  dom: false, farm: false, night: true,  eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: whale,     name: Whale,     cls: mammal,   water: true,  fly: false, big: true,  meat: false, dom: false, farm: false, night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: dolphin,   name: Dolphin,   cls: mammal,   water: true,  fly: false, big: true,  meat: true,  dom: false, farm: false, night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: monkey,    name: Monkey,    cls: mammal,   water: false, fly: false, big: false, meat: false, dom: false, farm: false, night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: true}
+    - {id: mouse,     name: Mouse,     cls: mammal,   water: false, fly: false, big: false, meat: false, dom: false, farm: false, night: false, eggs: false, stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    # birds
+    - {id: eagle,     name: Eagle,     cls: bird,     water: false, fly: true,  big: false, meat: true,  dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: owl,       name: Owl,       cls: bird,     water: false, fly: true,  big: false, meat: true,  dom: false, farm: false, night: true,  eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: penguin,   name: Penguin,   cls: bird,     water: true,  fly: false, big: false, meat: true,  dom: false, farm: false, night: false, eggs: true,  stripes: true,  venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: chicken,   name: Chicken,   cls: bird,     water: false, fly: false, big: false, meat: false, dom: true,  farm: true,  night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: duck,      name: Duck,      cls: bird,     water: true,  fly: true,  big: false, meat: false, dom: true,  farm: true,  night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    # fish
+    - {id: shark,     name: Shark,     cls: fish,     water: true,  fly: false, big: true,  meat: true,  dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: goldfish,  name: Goldfish,  cls: fish,     water: true,  fly: false, big: false, meat: false, dom: true,  farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: salmon,    name: Salmon,    cls: fish,     water: true,  fly: false, big: false, meat: false, dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    # reptiles
+    - {id: snake,     name: Snake,     cls: reptile,  water: false, fly: false, big: false, meat: true,  dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: true,  horns: false, ridden: false, hibernates: true,  climbs: false}
+    - {id: crocodile, name: Crocodile, cls: reptile,  water: true,  fly: false, big: true,  meat: true,  dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: turtle,    name: Turtle,    cls: reptile,  water: true,  fly: false, big: false, meat: false, dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    # amphibian, arachnid, insects
+    - {id: frog,      name: Frog,      cls: amphibian, water: true, fly: false, big: false, meat: true,  dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: spider,    name: Spider,    cls: arachnid, water: false, fly: false, big: false, meat: true,  dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: true,  horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: bee,       name: Bee,       cls: insect,   water: false, fly: true,  big: false, meat: false, dom: true,  farm: false, night: false, eggs: true,  stripes: true,  venom: true,  horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: butterfly, name: Butterfly, cls: insect,   water: false, fly: true,  big: false, meat: false, dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: ant,       name: Ant,       cls: insect,   water: false, fly: false, big: false, meat: false, dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+    - {id: mosquito,  name: Mosquito,  cls: insect,   water: false, fly: true,  big: false, meat: true,  dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
+prior: uniform
+termination:
+  entropy_threshold_bits: 0.25
+  max_turns: 12
+questions:
+  - id: q_class
+    text: "Which of nature's families does it belong to?"
+    reliability: 0.97
+    answers:
+      - {id: mammal,    label: A mammal,             predicate: {attr: cls, op: eq, value: mammal}}
+      - {id: bird,      label: A bird,               predicate: {attr: cls, op: eq, value: bird}}
+      - {id: fish,      label: A fish,               predicate: {attr: cls, op: eq, value: fish}}
+      - {id: reptile,   label: A reptile,            predicate: {attr: cls, op: eq, value: reptile}}
+      - {id: amphibian, label: An amphibian,         predicate: {attr: cls, op: eq, value: amphibian}}
+      - {id: arachnid,  label: A spider or scorpion, predicate: {attr: cls, op: eq, value: arachnid}}
+      - {id: insect,    label: An insect,            predicate: {attr: cls, op: eq, value: insect}}
+  - id: q_eggs
+    text: "Did it hatch from an egg?"
+    reliability: 0.96
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: eggs, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: eggs, op: eq, value: false}}
+  - id: q_meat
+    text: "Does it eat other creatures?"
+    reliability: 0.94
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: meat, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: meat, op: eq, value: false}}
+  - id: q_domestic
+    text: "Do humans keep it as a pet or companion?"
+    reliability: 0.95
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: dom, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: dom, op: eq, value: false}}
+  - id: q_big
+    text: "Is it larger than you are?"
+    reliability: 0.95
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: big, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: big, op: eq, value: false}}
+  - id: q_water
+    text: "Does it live in or around water?"
+    reliability: 0.95
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: water, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: water, op: eq, value: false}}
+  - id: q_fly
+    text: "Can it fly?"
+    reliability: 0.97
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: fly, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: fly, op: eq, value: false}}
+  - id: q_farm
+    text: "Would you find it on a farm?"
+    reliability: 0.95
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: farm, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: farm, op: eq, value: false}}
+  - id: q_night
+    text: "Does it prefer the night?"
+    reliability: 0.92
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: night, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: night, op: eq, value: false}}
+  - id: q_venom
+    text: "Does it carry venom?"
+    reliability: 0.96
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: venom, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: venom, op: eq, value: false}}
+  - id: q_stripes
+    text: "Does it wear stripes?"
+    reliability: 0.96
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: stripes, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: stripes, op: eq, value: false}}
+  - id: q_horns
+    text: "Does it bear horns or antlers?"
+    reliability: 0.96
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: horns, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: horns, op: eq, value: false}}
+  - id: q_ridden
+    text: "Can a person ride it?"
+    reliability: 0.97
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: ridden, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: ridden, op: eq, value: false}}
+  - id: q_hibernates
+    text: "Does it sleep through the winter?"
+    reliability: 0.95
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: hibernates, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: hibernates, op: eq, value: false}}
+  - id: q_climbs
+    text: "Is it at home in the treetops?"
+    reliability: 0.93
+    answers:
+      - {id: "yes", label: "Yes", predicate: {attr: climbs, op: eq, value: true}}
+      - {id: "no",  label: "No",  predicate: {attr: climbs, op: eq, value: false}}
