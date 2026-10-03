@@ -127,3 +127,26 @@ def test_unknown_session_404(client):
     assert client.get("/api/sessions/nope").status_code == 404
     assert client.post("/api/sessions/nope/answer", json={"answer_id": "x"}).status_code == 404
     assert client.post("/api/sessions/nope/outcome", json={"correct": True}).status_code == 404
+
+
+def test_session_or_404_helper(card_effect):
+    from fastapi import HTTPException
+
+    from services.api.main import _session_or_404
+    from services.api.store import SessionStore
+    from services.effects.engine import EffectSession
+    from services.language.renderer import LanguageRenderer
+
+    store = SessionStore()
+    session = EffectSession(card_effect, LanguageRenderer())
+    store.add(session)
+
+    # Found session
+    retrieved = _session_or_404(store, session.session_id)
+    assert retrieved is session
+
+    # Missing session raises 404
+    with pytest.raises(HTTPException) as exc_info:
+        _session_or_404(store, "non_existent_id")
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "session not found"
