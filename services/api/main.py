@@ -50,6 +50,86 @@ ALLOWED_ORIGINS = [
 ]
 
 
+def _session_or_404(store: SessionStore, session_id: str) -> EffectSession:
+    try:
+        return store.get(session_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="session not found") from None
+
+
+def _view(session: EffectSession) -> SessionViewDTO:
+    entropy_bits = session.tracker.entropy()
+    initial = session.initial_entropy
+    top = [
+        CurtainHypothesisDTO(
+            hypothesis_id=hid,
+            label=session.effect.hypothesis_label(hid),
+            probability=p,
+        )
+        for hid, p in session.tracker.top_k(5)
+    ]
+    entropy_history = [
+        EntropyPointDTO(turn=i + 1, entropy_bits=event.payload["entropy_after"])
+        for i, event in enumerate(
+            e for e in session.history if e.type.value == "hypothesis.updated"
+        )
+    ]
+    last_observation = next(
+        (e for e in reversed(session.history) if e.type.value == "observation.recorded"),
+        None,
+    )
+    if session.phase is Phase.ACTIVE:
+        message = session.ask_message
+        options = [
+            OptionDTO(id=a.id, label=a.label, voice=a.voice)
+            for a in (session.current_question.answers if session.current_question else [])
+        ]
+    elif session.phase is Phase.REVEALED:
+        message = session.reveal_message
+        options = []
+    else:
+        message = session.outcome_message
+        options = []
+    return SessionViewDTO(
+        session_id=session.session_id,
+        effect_id=session.effect.id,
+        effect_title=session.effect.title,
+        phase=session.phase.value,
+        turn=session.turn,
+        max_turns=session.effect.termination.max_turns,
+        question_id=session.current_question.id if session.current_question else None,
+        message=message,
+        options=options,
+        uncertainty_bits=entropy_bits,
+        certainty=(1.0 - entropy_bits / initial) if initial > 0 else 1.0,
+        curtain=CurtainDTO(
+            entropy_bits=entropy_bits,
+            initial_entropy_bits=initial,
+            last_info_gain_bits=session.last_info_gain,
+            top=top,
+            entropy_history=entropy_history,
+            last_observation=(
+                LastObservationDTO(
+                    channel=last_observation.payload["channel"],
+                    answer_label=last_observation.payload["answer_label"],
+                    dwell_ms=last_observation.payload["dwell_ms"],
+                )
+                if last_observation
+                else None
+            ),
+        ),
+        prediction=(
+            PredictionDTO(
+                hypothesis_id=session.prediction.hypothesis_id,
+                label=session.prediction.label,
+                confidence=session.prediction.confidence,
+            )
+            if session.prediction
+            else None
+        ),
+    )
+
+
 def create_app(effects_dir: Path | None = None, db_path: Path | None = None) -> FastAPI:
     registry = load_effects(effects_dir or DEFAULT_EFFECTS_DIR)
     renderer = LanguageRenderer()
@@ -63,84 +143,6 @@ def create_app(effects_dir: Path | None = None, db_path: Path | None = None) -> 
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    def _session_or_404(session_id: str) -> EffectSession:
-        try:
-            return store.get(session_id)
-        except KeyError:
-            raise HTTPException(status_code=404, detail="session not found") from None
-
-    def _view(session: EffectSession) -> SessionViewDTO:
-        entropy_bits = session.tracker.entropy()
-        initial = session.initial_entropy
-        top = [
-            CurtainHypothesisDTO(
-                hypothesis_id=hid,
-                label=session.effect.hypothesis_label(hid),
-                probability=p,
-            )
-            for hid, p in session.tracker.top_k(5)
-        ]
-        entropy_history = [
-            EntropyPointDTO(turn=i + 1, entropy_bits=event.payload["entropy_after"])
-            for i, event in enumerate(
-                e for e in session.history if e.type.value == "hypothesis.updated"
-            )
-        ]
-        last_observation = next(
-            (e for e in reversed(session.history) if e.type.value == "observation.recorded"),
-            None,
-        )
-        if session.phase is Phase.ACTIVE:
-            message = session.ask_message
-            options = [
-                OptionDTO(id=a.id, label=a.label, voice=a.voice)
-                for a in (session.current_question.answers if session.current_question else [])
-            ]
-        elif session.phase is Phase.REVEALED:
-            message = session.reveal_message
-            options = []
-        else:
-            message = session.outcome_message
-            options = []
-        return SessionViewDTO(
-            session_id=session.session_id,
-            effect_id=session.effect.id,
-            effect_title=session.effect.title,
-            phase=session.phase.value,
-            turn=session.turn,
-            max_turns=session.effect.termination.max_turns,
-            question_id=session.current_question.id if session.current_question else None,
-            message=message,
-            options=options,
-            uncertainty_bits=entropy_bits,
-            certainty=(1.0 - entropy_bits / initial) if initial > 0 else 1.0,
-            curtain=CurtainDTO(
-                entropy_bits=entropy_bits,
-                initial_entropy_bits=initial,
-                last_info_gain_bits=session.last_info_gain,
-                top=top,
-                entropy_history=entropy_history,
-                last_observation=(
-                    LastObservationDTO(
-                        channel=last_observation.payload["channel"],
-                        answer_label=last_observation.payload["answer_label"],
-                        dwell_ms=last_observation.payload["dwell_ms"],
-                    )
-                    if last_observation
-                    else None
-                ),
-            ),
-            prediction=(
-                PredictionDTO(
-                    hypothesis_id=session.prediction.hypothesis_id,
-                    label=session.prediction.label,
-                    confidence=session.prediction.confidence,
-                )
-                if session.prediction
-                else None
-            ),
-        )
 
     @app.get("/api/health")
     def health() -> dict:
@@ -174,11 +176,11 @@ def create_app(effects_dir: Path | None = None, db_path: Path | None = None) -> 
 
     @app.get("/api/sessions/{session_id}")
     def get_session(session_id: str) -> SessionViewDTO:
-        return _view(_session_or_404(session_id))
+        return _view(_session_or_404(store, session_id))
 
     @app.get("/api/sessions/{session_id}/trajectory")
     def get_trajectory(session_id: str) -> TrajectoryDTO:
-        session = _session_or_404(session_id)
+        session = _session_or_404(store, session_id)
         return TrajectoryDTO(
             session_id=session_id,
             events=[event.model_dump() for event in session.history],
@@ -186,7 +188,7 @@ def create_app(effects_dir: Path | None = None, db_path: Path | None = None) -> 
 
     @app.post("/api/sessions/{session_id}/answer")
     def answer(session_id: str, request: AnswerRequest) -> SessionViewDTO:
-        session = _session_or_404(session_id)
+        session = _session_or_404(store, session_id)
         try:
             session.answer(
                 request.answer_id,
@@ -201,7 +203,7 @@ def create_app(effects_dir: Path | None = None, db_path: Path | None = None) -> 
 
     @app.post("/api/sessions/{session_id}/observations")
     def observe(session_id: str, request: ObservationRequest) -> SessionViewDTO:
-        session = _session_or_404(session_id)
+        session = _session_or_404(store, session_id)
         try:
             session.observe(
                 request.question_id,
@@ -217,7 +219,7 @@ def create_app(effects_dir: Path | None = None, db_path: Path | None = None) -> 
 
     @app.post("/api/sessions/{session_id}/outcome")
     def report_outcome(session_id: str, request: OutcomeRequest) -> SessionViewDTO:
-        session = _session_or_404(session_id)
+        session = _session_or_404(store, session_id)
         try:
             session.report_outcome(request.correct)
         except InvalidStateError as exc:
@@ -226,7 +228,7 @@ def create_app(effects_dir: Path | None = None, db_path: Path | None = None) -> 
 
     @app.post("/api/sessions/{session_id}/archive")
     def archive_session(session_id: str) -> ArchiveResponseDTO:
-        session = _session_or_404(session_id)
+        session = _session_or_404(store, session_id)
         if session.phase is not Phase.OUTCOME:
             raise HTTPException(
                 status_code=409,
