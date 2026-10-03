@@ -25,6 +25,13 @@ ASK_OPENERS = (
     "Hmm. The shape of it grows clearer. {question}",
 )
 
+COVERT_FISHING_OPENERS = (
+    "I get a strong visual impression right now… {assertion}",
+    "Do not speak yet — just focus. I sense that {assertion}",
+    "There's an unmistakable resonance here… {assertion}",
+    "A impression is taking form in my mind… {assertion}",
+)
+
 INTRO_LINES = (
     "Very well. Fix the {title}'s secret in your mind and hold it there. "
     "Answer truly — trickery is my domain, not yours.",
@@ -77,6 +84,10 @@ class LanguageRenderer:
     def ask(self, question_text: str, session_id: str, turn: int) -> str:
         template = self._pick(ASK_OPENERS, "ask", session_id, str(turn))
         return template.format(question=question_text)
+
+    def covert_fish(self, assertion_text: str, session_id: str, turn: int) -> str:
+        template = self._pick(COVERT_FISHING_OPENERS, "covert_fish", session_id, str(turn))
+        return template.format(assertion=assertion_text)
 
     def reveal(self, label: str, confidence: float, session_id: str) -> str:
         if confidence >= 0.90:
