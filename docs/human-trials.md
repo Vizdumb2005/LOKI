@@ -1,7 +1,6 @@
 # Spec: A/B Human Evaluation Suite (ROADMAP Phase 6, item 2)
 
-Status: **Built — awaiting participants** (the trials themselves require humans; everything
-needed to run them is in place and piloted in simulation)
+Status: **Apparatus built & simulated pilot validated — awaiting human participant records**
 
 Implements docs/magic-factor.md §4's experiential protocol: a double-blind comparison of
 

@@ -1,22 +1,24 @@
 # LOKI — Digital Mentalist
 
-A multimodal AI mentalism research prototype: LOKI creates convincing "mind reading" effects
+An AI mentalism research prototype: LOKI creates convincing "mind reading" illusions
 through explicit hypothesis spaces, Bayesian inference, information-gain questioning, and
-theatrical presentation. It is not telepathy — the full idea lives in the project plan
-(`../idea.md` in the workspace parent; specs in [`docs/spec/`](docs/spec/)).
+theatrical presentation. Sensing slices (in-browser gaze dwell and voice answers on *The Card*)
+and passive signals (latency, typing rhythm) modulate evidence reliability and response interpretation.
+It is not telepathy — the full idea lives in the project plan (`../idea.md` in the workspace parent; specs in [`docs/spec/`](docs/spec/)).
 
 > North star (plan §17): not *"I know what you are thinking"* but **"I know what to do next."**
 
-## Status — phase tracker
+## Status — phase tracker (ROADMAP.md Alignment)
 
 | Phase | Scope | Status |
 |---|---|---|
 | 0 — Specification | effects/event schemas, evaluation protocol, model + license registries | ✅ done |
-| 1 — Akinator-style engine | Bayesian tracker, info-gain policy, effect engine, web UI (text-only) | ✅ done |
-| 2 — Multimodal perception | webcam + gaze dwell, voice answers — in-browser, privacy-first | ✅ slice shipped (The Card) |
-| 3 — Fusion | structured multimodal state, replayable sessions | not started |
-| 4 — Policy | participant simulator, bandit, offline evaluation | simulator seed only |
-| 5–7 | in-house models, performance, product | not started |
+| 1 — Research & Foundations | taxonomy, digital translation, magic factor metric ($M = \frac{\text{Accuracy}}{1 + I_{\text{visible}}}$) | ✅ done |
+| 2 — Covert Fishing | cold reads, agreement-strength responses, soft Bayesian updates | ✅ done |
+| 3 — Multi-Outs & Reveal | progressive attribute ladder, category cluster, hesitation, equivocation | ✅ done |
+| 4 — Choice Architecture | visual saliency, default positioning, delayed emphasis onset | ✅ done |
+| 5 — Passive Signal Fusion | response latency modulation, typing rhythm aggregates, gaze dwell | ✅ done |
+| 6 — RL Policy & Human Trials | contextual bandit simulator, double-blind A/B evaluation suite | 🔄 active |
 
 **ROADMAP phase 2 — Covert Fishing & Dialogue Strategy** (`ROADMAP.md`, the perceived-impact
 prioritization): ✅ done — fishing assertions, agreement-strength responses with soft Bayesian

@@ -59,25 +59,48 @@ def _answer_label_for(effect: EffectDef, question_id: str, hypothesis_id: str) -
 def _ladder(
     effect: EffectDef, asked: list[str], hypothesis_id: str, limit: int = 2
 ) -> tuple[RevealStage, ...]:
-    """Attribute beats from the session's asked questions, in ask order.
+    """Attribute beats for the target hypothesis.
 
-    Bare Yes/No confirmations are not stage-worthy text; they fold into the
-    identity line instead.
+    Prioritizes un-interviewed corpus attributes (from unasked questions) so
+    the staged reveal reveals new, unsupplied facts about the target rather
+    than merely repeating the participant's explicit interview answers.
     """
     stages: list[RevealStage] = []
-    for question_id in asked:
+    asked_set = set(asked)
+
+    # 1. First pass: unasked questions (un-interviewed corpus attributes)
+    unasked_questions = [q for q in effect.questions if q.id not in asked_set]
+    for question in unasked_questions:
         if len(stages) >= limit:
             break
-        question = next(q for q in effect.questions if q.id == question_id)
         if len(question.answers) == 2:
             labels = {a.label.strip().lower() for a in question.answers}
             if labels <= YES_NO_LABELS:
-                continue  # "Yes" reads as nothing on a stage line
-        label = _answer_label_for(effect, question_id, hypothesis_id)
+                continue
+        label = _answer_label_for(effect, question.id, hypothesis_id)
         if label is None:
             continue
         attr = question.answers[0].predicate.attr
         stages.append(RevealStage(kind="attribute", attr=attr, label=label))
+
+    # 2. Second pass: fallback to asked questions if unasked attributes alone did not fill limit
+    if len(stages) < limit:
+        for question_id in asked:
+            if len(stages) >= limit:
+                break
+            question = next(q for q in effect.questions if q.id == question_id)
+            if len(question.answers) == 2:
+                labels = {a.label.strip().lower() for a in question.answers}
+                if labels <= YES_NO_LABELS:
+                    continue
+            label = _answer_label_for(effect, question_id, hypothesis_id)
+            if label is None:
+                continue
+            attr = question.answers[0].predicate.attr
+            if any(s.attr == attr for s in stages):
+                continue
+            stages.append(RevealStage(kind="attribute", attr=attr, label=label))
+
     return tuple(stages)
 
 

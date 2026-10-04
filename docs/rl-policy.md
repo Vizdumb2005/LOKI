@@ -1,6 +1,6 @@
 # Spec: RL Dialogue Policy — Contextual Bandit (ROADMAP Phase 6, item 1)
 
-Status: **Active — ROADMAP Phase 6**
+Status: **Active — ROADMAP Phase 6 (Bandit simulator & training harness built)**
 
 Answers idea.md §13 Q6 experimentally: *can a contextual bandit produce better interactions
 than the manually designed information-gain heuristics?* The agent trains in the participant
