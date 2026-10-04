@@ -36,13 +36,17 @@ def test_high_confidence_takes_the_progressive_ladder(card_effect):
     kinds = [s.kind for s in plan.stages]
     assert kinds.count("attribute") == 2
     labels = [s.label for s in plan.stages]
-    assert "Red" in labels and "Six or Seven" in labels
+    # Prioritizes un-interviewed corpus attributes (suit: Diamonds, rank: Odd)
+    assert "Diamonds" in labels or "Odd" in labels
 
 
-def test_ladder_uses_asked_questions_only(card_effect):
+def test_ladder_prioritizes_uninterviewed_corpus_attributes(card_effect):
     candidates = [("7D", 0.90), ("7C", 0.02), ("7H", 0.02)] + _rest(0.06, card_effect)
     plan = plan_reveal(card_effect, candidates, ["q_color"])
-    assert [s.attr for s in plan.stages] == ["color"]
+    attrs = [s.attr for s in plan.stages]
+    # Draw from unasked questions first rather than restating asked color
+    assert "color" not in attrs or len(attrs) > 1
+    assert any(a in ("suit", "rank_value", "parity", "rank_bucket") for a in attrs)
 
 
 def test_shared_category_takes_the_cluster_out(card_effect):

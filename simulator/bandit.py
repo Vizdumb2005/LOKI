@@ -180,7 +180,11 @@ class BanditTurnSelector:
 
 
 def serialize(bandit: TabularBandit, path) -> None:
-    path.write_text(json.dumps(bandit.to_dict(), indent=2), encoding="utf-8")
+    from pathlib import Path
+
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(bandit.to_dict(), indent=2), encoding="utf-8")
 
 
 def load(path) -> TabularBandit:

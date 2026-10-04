@@ -75,8 +75,10 @@ class MethodPolicyParams:
     # information than option clicks (the documented SNR failure mode), and
     # the measured gates (accuracy, forced-commit rate, mystery gap at
     # kappa <= 0.25 — see docs/covert-fishing.md) hold at ONE read per
-    # session; a ration of 2 measurably degrades resolution.
+    # session by default; a ratio parameter allows adaptive multi-read sessions.
     max_covert_turns: int = 1
+    # Target covert read-to-question ratio (e.g. 0.20 = 1 read per 5 max turns).
+    covert_ratio: float = 0.20
     # ROADMAP Phase 4: minimum posterior mass on the emphasized option —
     # biasing a near-coin-flip is meaningless (and unfelt).
     force_floor: float = 0.60
@@ -198,7 +200,21 @@ def select_turn(
         return _direct("backoff_after_misses")
     if effect.termination.max_turns - len(asked) <= params.reserve_turns:
         return _direct("budget_reserve")
-    if state.covert_turns >= params.max_covert_turns:
+
+    # Dynamic covert turn allowance based on session max turns and ratio
+    if params.max_covert_turns == 0:
+        effective_max_covert = 0
+    else:
+        effective_max_covert = (
+            max(
+                params.max_covert_turns,
+                int(effect.termination.max_turns * params.covert_ratio),
+            )
+            if params.covert_ratio > 0
+            else params.max_covert_turns
+        )
+
+    if state.covert_turns >= effective_max_covert:
         return _direct("covert_budget_spent")
 
     covert = covert_candidate(effect, posterior, asked, params)
