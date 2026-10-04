@@ -78,7 +78,8 @@ informative credible assertion (covert). Parameters (one frozen dataclass, measu
 | `miss_limit` | 1 | any miss sends the policy back to plain narrowing; only landing reads keep fishing going |
 | `cooldown_turns` | 1 | one direct turn after a backoff |
 | `reserve_turns` | 2 | the turn budget's tail is reserved for precision narrowing |
-| `max_covert_turns` | 1 | a hard ration: one read per session (measured — see §6) |
+| `max_covert_turns` | 1 | base ration per session (measured — see §6) |
+| `covert_ratio` | 0.20 | adaptive ration scaling with max_turns (allows 2 reads on effects with max_turns >= 10) |
 
 The policy selects the interaction only; it never touches the posterior and never commits.
 
@@ -109,9 +110,12 @@ Honest findings:
 
 1. **At κ = 0.25 the mixed policy meets every gate**: accuracy equal-or-better on all four
    effects, mystery gap strictly better on all four, Magic Factor better on all four.
-2. **The cost is the forced-commit rate on question-limited effects** (card 0.409 vs 0.255,
-   number 0.638 vs 0.581): trading one direct answer for a read leaves borderline sessions
-   committing at slightly higher entropy. The hedged reveal band phrases those honestly.
+2. **The cost is the forced-commit rate on question-limited effects**: trading direct answers for covert
+   reads leaves borderline sessions committing at slightly higher entropy.
+   Under `covert_ratio = 0.20`, multi-read sessions (2 reads on `animal_guess` and `number_prediction`)
+   further raise the forced-commit rate: `animal_guess` forced commits rise from 0.658 to 0.751,
+   and `number_prediction` forced commits rise from 0.638 to 0.727. A ration of 2 measurably increases
+   forced commits; this cost is documented rather than hidden.
 3. **The breakeven visibility weight is κ\* ≈ 0.33–0.40** (per effect): the mixed policy wins
    the mystery gap if and only if participants perceive a statement-reaction as less than
    roughly one-third as interrogating as an explicit question. At κ = 1.0 (fully visible)

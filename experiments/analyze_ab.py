@@ -21,6 +21,12 @@ import statistics
 import sys
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 from services.api.archive import SessionArchive
 
 ITEMS = ("impossibility", "freedom", "naturalness", "surprise")

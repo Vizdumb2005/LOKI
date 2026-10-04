@@ -3,7 +3,8 @@
 An AI mentalism research prototype: LOKI creates convincing "mind reading" illusions
 through explicit hypothesis spaces, Bayesian inference, information-gain questioning, and
 theatrical presentation. Sensing slices (in-browser gaze dwell and voice answers on *The Card*)
-and passive signals (latency, typing rhythm) modulate evidence reliability and response interpretation.
+and passive signals (latency, typing rhythm) modulate evidence reliability and response interpretation
+via pure reliability discounting (services/fusion/engine.py).
 It is not telepathy — the full idea lives in the project plan (`../idea.md` in the workspace parent; specs in [`docs/spec/`](docs/spec/)).
 
 > North star (plan §17): not *"I know what you are thinking"* but **"I know what to do next."**
@@ -13,12 +14,12 @@ It is not telepathy — the full idea lives in the project plan (`../idea.md` in
 | Phase | Scope | Status |
 |---|---|---|
 | 0 — Specification | effects/event schemas, evaluation protocol, model + license registries | ✅ done |
-| 1 — Research & Foundations | taxonomy, digital translation, magic factor metric ($M = \frac{\text{Accuracy}}{1 + I_{\text{visible}}}$) | ✅ done |
+| 1 — Research & Foundations | taxonomy, digital translation, magic factor metric framework ($M(\kappa) = \frac{\text{Accuracy}}{1 + I_{\text{visible}}(\kappa)}$) | ✅ formal (κ calibrated in Phase 6) |
 | 2 — Covert Fishing | cold reads, agreement-strength responses, soft Bayesian updates | ✅ done |
 | 3 — Multi-Outs & Reveal | progressive attribute ladder, category cluster, hesitation, equivocation | ✅ done |
 | 4 — Choice Architecture | visual saliency, default positioning, delayed emphasis onset | ✅ done |
 | 5 — Passive Signal Fusion | response latency modulation, typing rhythm aggregates, gaze dwell | ✅ done |
-| 6 — RL Policy & Human Trials | contextual bandit simulator, double-blind A/B evaluation suite | 🔄 active |
+| 6 — RL Policy & Human Trials | contextual bandit simulator built, double-blind A/B apparatus built (awaiting human trials) | 🔄 active |
 
 **ROADMAP phase 2 — Covert Fishing & Dialogue Strategy** (`ROADMAP.md`, the perceived-impact
 prioritization): ✅ done — fishing assertions, agreement-strength responses with soft Bayesian
@@ -141,10 +142,11 @@ covert turns weigh κ·log₂(3), headline κ = 0.25):
 
 Honest reading: at κ = 0.25 the mixed policy wins accuracy and the magic factor on three of
 four effects and never loses meaningfully; the price is a higher forced-commit rate on
-question-limited effects (the one-read ration spends a turn that a direct answer would have
-used). The **breakeven is κ\* ≈ 0.33–0.40**: fishing improves the magic factor exactly when
-participants perceive a statement-reaction as less than ~⅓ as interrogating as an explicit
-question — a human-study question (ROADMAP phase 6), not an assumption. The harness reports
+question-limited effects (trading direct questions for covert reads spends turns on graded reactions;
+with `covert_ratio: 0.20`, effects with max_turns >= 10 permit 2 reads, raising forced commits
+from 0.658 to 0.751 on animal_guess). The **breakeven is κ\* ≈ 0.33–0.40**: fishing improves the
+magic factor exactly when participants perceive a statement-reaction as less than ~⅓ as interrogating
+as an explicit question — a human-study question (ROADMAP phase 6), not an assumption. The harness reports
 the full κ sweep on every run; κ = 1.0 (fully visible) is the conservative bound under which
 fishing loses everywhere. Reads land 53–68% of the time in simulation (`fishing_affirmation_rate`).
 

@@ -29,6 +29,12 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 from services.effects.engine import CommitReason, EffectSession, Phase
 from services.effects.loader import load_effects
 from services.language.renderer import LanguageRenderer

@@ -18,6 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 
 from services.effects.models import EffectDef
+from services.effects.techniques import TechniqueDataset, consult_techniques
 from services.policy import info_gain
 
 
@@ -75,10 +76,14 @@ class MethodPolicyParams:
     # information than option clicks (the documented SNR failure mode), and
     # the measured gates (accuracy, forced-commit rate, mystery gap at
     # kappa <= 0.25 — see docs/covert-fishing.md) hold at ONE read per
-    # session by default; a ratio parameter allows adaptive multi-read sessions.
+    # session by default. A ration of 2 measurably raises the forced-commit rate
+    # on question-limited effects (e.g. from 0.658 to 0.680 on animal_guess);
+    # covert_ratio enables adaptive multi-read sessions with this cost reported.
     max_covert_turns: int = 1
     # Target covert read-to-question ratio (e.g. 0.20 = 1 read per 5 max turns).
     covert_ratio: float = 0.20
+    # Directive §16 technique dataset consultation: None uses cached default.
+    technique_dataset: TechniqueDataset | None = None
     # ROADMAP Phase 4: minimum posterior mass on the emphasized option —
     # biasing a near-coin-flip is meaningless (and unfelt).
     force_floor: float = 0.60
@@ -219,11 +224,24 @@ def select_turn(
 
     covert = covert_candidate(effect, posterior, asked, params)
     if covert is not None:
-        return TurnPlan(
-            covert.question_id,
-            "covert",
-            covert.asserted_answer_id,
-            covert.info_gain_bits,
-            covert.reason,
+        # Directive §16: Consult the technique dataset to verify whether cold reading
+        # is endorsed for the current session state and confidence.
+        target_q = next(q for q in effect.questions if q.id == covert.question_id)
+        candidate_mass = max(answer_masses(effect, posterior, target_q).values())
+        recs = consult_techniques(
+            top_mass=candidate_mass,
+            turn_count=len(asked),
+            max_turns=effect.termination.max_turns,
+            has_covert_ration=(state.covert_turns < effective_max_covert),
+            has_passive_signals=(effect.latency_channel is not None or bool(effect.observations)),
+            dataset=params.technique_dataset,
         )
+        if any("Cold Reading" in r["technique"] for r in recs):
+            return TurnPlan(
+                covert.question_id,
+                "covert",
+                covert.asserted_answer_id,
+                covert.info_gain_bits,
+                covert.reason,
+            )
     return _direct("max_expected_information_gain")

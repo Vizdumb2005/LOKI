@@ -40,5 +40,5 @@ This roadmap outlines the prioritized phases to transform LOKI from an Akinator-
 ---
 
 ## Phase 6 — Continuous Reinforcement Learning & Human Trials
-- [ ] **RL Dialogue Policy**: Train a contextual bandit / RL agent in `simulator/` to optimize the Magic Factor score against synthetic participant profiles.
-- [ ] **A/B Human Evaluation Suite**: Run double-blind human trials comparing baseline Akinator dialogue against the AI Mentalist performance engine.
+- [ ] **RL Dialogue Policy**: Train a contextual bandit / RL agent in `simulator/` to optimize the Magic Factor score against synthetic participant profiles. (Simulator and training harness built: `simulator/bandit.py`, `experiments/run_bandit_eval.py` — active)
+- [ ] **A/B Human Evaluation Suite**: Run double-blind human trials comparing baseline Akinator dialogue against the AI Mentalist performance engine. (Double-blind apparatus built: `services/api/main.py`, `experiments/run_human_trial.py`, `experiments/analyze_ab.py` — awaiting human participant records)
