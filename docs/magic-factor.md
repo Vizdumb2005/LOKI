@@ -27,6 +27,28 @@ For standard binary questions ($Yes/No$), $I_{\text{visible}}(Q_k) = 1.0\text{ b
 Total visible information:
 $$I_{\text{visible}} = \sum_{k=1}^{T} I_{\text{visible}}(Q_k)$$
 
+### 2.1 Amendment (ROADMAP Phase 2): interaction-mode weighting
+
+Direct questions and covert fishing statements (docs/covert-fishing.md) are accounted
+differently:
+
+- a **direct** question with m options: $I_{visible}(Q_k) = \log_2(m)$;
+- a **covert** assertion answered on the agreement scale (3 buttons): $I_{visible} = \kappa \cdot \log_2(3)$.
+
+κ ("visibility weight") models how interrogating a statement-reaction feels relative to
+answering an explicit question. **It is a modeling assumption, not a measurement** — until
+human studies calibrate it (ROADMAP Phase 6, perceived-interrogation Likert items):
+
+- the eval harness reports the full sweep κ ∈ {0, 0.25, 0.5, 0.75, 1.0} on every run;
+- the headline uses κ = 0.25, the largest sweep value at which the mixed policy meets all
+  measured gates (docs/covert-fishing.md §6);
+- κ = 1.0 is the fully-visible conservative bound — under it, covert fishing loses to direct
+  questioning everywhere;
+- the measured **breakeven** is κ\* ≈ 0.33–0.40 across effects: fishing pays iff participants
+  perceive a statement-reaction as less than ~⅓ as interrogating as an explicit question.
+
+Do not tune κ to flatter a result; report the sweep.
+
 ### 2.2 Information Mystery Gap ($\Delta H_{\text{mystery}}$)
 The difference between actual information gathered and the information the participant realizes they provided:
 $$\Delta H_{\text{mystery}} = \Delta H_{\text{actual}} - I_{\text{visible}}$$

@@ -624,3 +624,88 @@ body {
   font-style: italic;
   margin: -0.6rem 0 1.4rem;
 }
+
+.freetext-row {
+  display: flex;
+  gap: 0.6rem;
+  margin: -0.8rem 0 2rem;
+}
+
+.freetext-row input {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  padding: 0.6rem 0.9rem;
+}
+
+.freetext-row input:focus {
+  outline: none;
+  border-color: rgba(47, 191, 143, 0.6);
+}
+
+.reveal-stage {
+  color: var(--gold);
+  font-style: italic;
+  margin: 0 0 0.7rem;
+  animation: stage-in 0.6s ease both;
+}
+
+/* Choice-architecture saliency (ROADMAP Phase 4): delayed emphasis onset —
+   the participant sees the plain set first, the warm glow fades in after
+   ~1.2 s. Nothing is disabled; keyboard and contrast are untouched. */
+.option-btn.option-salient {
+  animation: salient-in 0.9s ease 1.2s both;
+}
+
+@keyframes salient-in {
+  from {
+    border-color: var(--panel-border);
+    box-shadow: none;
+  }
+  to {
+    border-color: rgba(212, 175, 55, 0.6);
+    box-shadow: 0 0 14px rgba(212, 175, 55, 0.22);
+  }
+}
+
+.survey {
+  border-top: 1px solid var(--panel-border);
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: 34rem;
+}
+
+.survey-invite {
+  color: var(--gold);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.survey-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.9rem;
+}
+
+.survey-item input[type="range"] {
+  flex: 1;
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

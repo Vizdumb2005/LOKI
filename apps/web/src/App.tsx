@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
-import type { ArchivedSummary, EffectSummary, LedgerStats, SessionView } from "./types";
+import type {
+  ArchivedSummary,
+  EffectSummary,
+  LedgerStats,
+  SessionView,
+  SurveyAnswers,
+  TypingRhythm,
+} from "./types";
 import { Landing } from "./components/Landing";
 import { Session } from "./components/Session";
 
@@ -55,6 +62,22 @@ export default function App() {
     [session],
   );
 
+  const answerFreeText = useCallback(
+    async (text: string, latencyMs?: number, rhythm?: TypingRhythm | null) => {
+      if (!session) return;
+      setBusy(true);
+      setError(null);
+      try {
+        setSession(await api.answerFreeText(session.session_id, text, latencyMs, rhythm));
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [session],
+  );
+
   const observe = useCallback(
     async (observation: {
       channel: string;
@@ -84,6 +107,18 @@ export default function App() {
         setError((e as Error).message);
       } finally {
         setBusy(false);
+      }
+    },
+    [session],
+  );
+
+  const submitSurvey = useCallback(
+    async (answers: SurveyAnswers) => {
+      if (!session) return;
+      try {
+        await api.survey(session.session_id, answers);
+      } catch (e) {
+        setError((e as Error).message);
       }
     },
     [session],
@@ -145,6 +180,8 @@ export default function App() {
               effects?.find((e) => e.id === session.effect_id)?.observation_channels ?? []
             }
             onAnswer={answer}
+            onFreeText={answerFreeText}
+            onSurvey={submitSurvey}
             onOutcome={reportOutcome}
             onArchive={archive}
             onRestart={restart}
@@ -164,9 +201,10 @@ export default function App() {
 
       <footer className="app-footer">
         <p>
-          Phase 1: no camera, no microphone. Gameplay writes nothing anywhere — a
-          séance is only kept in the ledger if you say so, and you can delete it
-          whenever you like.
+          Camera and microphone are opt-in, session-scoped, and processed entirely in
+          your browser — frames and audio never leave this machine. Gameplay writes
+          nothing anywhere: a séance is only kept in the ledger if you say so, and you
+          can delete it whenever you like.
         </p>
       </footer>
     </div>

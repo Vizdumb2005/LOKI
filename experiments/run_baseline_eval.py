@@ -36,12 +36,15 @@ def evaluate_effect(
     rng: random.Random,
     gaze_prob: float = 0.0,
     gaze_reliability: float | None = None,
+    mode: str = "direct",
 ):
     if gaze_reliability is not None and "gaze_dwell" in effect.observations:
         channel = effect.observations["gaze_dwell"].model_copy(
             update={"reliability": gaze_reliability}
         )
         effect = effect.model_copy(update={"observations": {"gaze_dwell": channel}})
+    if mode == "direct":
+        effect = effect.without_fishing()
 
     renderer = LanguageRenderer()
     correct = 0
@@ -56,12 +59,19 @@ def evaluate_effect(
         participant = TruthfulNoisyParticipant(effect, truth, rng, reliability, gaze_prob=gaze_prob)
         session = EffectSession(effect, renderer)
         while session.phase is Phase.ACTIVE:
-            look = participant.look(session.current_question)
-            if look is not None:
-                session.observe(
-                    session.current_question.id, look[0], "gaze_dwell", dwell_ms=look[1]
+            question = session.current_question
+            if session.current_mode == "covert":
+                strength, latency = participant.respond_to_fishing(
+                    session.current_question, session.asserted_answer_id
                 )
-            session.answer(participant.answer(session.current_question))
+                session.respond_agreement(strength, latency_ms=latency)
+            else:
+                # Gaze applies to direct turns only: a covert turn shows
+                # agreement reactions, not options to dwell on.
+                look = participant.look(question)
+                if look is not None:
+                    session.observe(question.id, look[0], "gaze_dwell", dwell_ms=look[1])
+                session.answer(participant.answer(question))
         assert session.prediction is not None  # revealed by construction
         if session.prediction.hypothesis_id == truth:
             correct += 1
@@ -86,6 +96,7 @@ def evaluate_effect(
         "sessions": sessions,
         "reliability": reliability if reliability is not None else "per-question YAML",
         "gaze_prob": gaze_prob,
+        "mode": mode,
         "top1_accuracy": correct / sessions,
         "avg_turns_to_reveal": round(statistics.mean(turns), 3),
         "avg_entropy_at_commit_bits": round(statistics.mean(entropy_at_commit), 4),
@@ -118,6 +129,14 @@ def main() -> int:
         default=None,
         help="override the gaze channel reliability for a sweep",
     )
+    parser.add_argument(
+        "--mode",
+        choices=("direct", "auto"),
+        default="direct",
+        help="direct keeps every turn an explicit question (comparable with "
+        "earlier baselines); auto lets the Method Selection Policy mix "
+        "covert reads (ROADMAP Phase 2)",
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--json", type=Path, default=None, help="also write results as JSON")
     args = parser.parse_args()
@@ -139,12 +158,13 @@ def main() -> int:
                 rng,
                 gaze_prob=args.gaze_prob,
                 gaze_reliability=args.gaze_reliability,
+                mode=args.mode,
             )
         )
 
     print(
         f"LOKI baseline evaluation — sessions={args.sessions}, seed={args.seed}, "
-        f"gaze_prob={args.gaze_prob}"
+        f"gaze_prob={args.gaze_prob}, mode={args.mode}"
     )
     header = (
         f"{'effect':<20}{'accuracy':>9}{'turns':>8}{'H@commit':>10}{'forced':>8}"

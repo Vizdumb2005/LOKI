@@ -141,6 +141,15 @@ def _build_effect(raw: dict[str, Any]) -> EffectDef:
     raw["hypotheses"] = _expand_hypothesis_space(space_raw)
     if raw.get("prior") == "uniform":
         raw["prior"] = None
+    # Schema v1.5: the latency channel is a modulation channel, not a
+    # categorical one — parsed into its own field (docs/passive-signals.md).
+    observations = raw.get("observations")
+    if isinstance(observations, dict) and "response_latency" in observations:
+        latency = observations["response_latency"]
+        if not isinstance(latency, dict):
+            raise ValueError("'response_latency' must be a mapping of fast_ms/slow_ms/floor")
+        raw["latency_channel"] = latency
+        raw["observations"] = {k: v for k, v in observations.items() if k != "response_latency"}
     effect = EffectDef.model_validate(raw)
     _validate_semantics(effect)
     return effect

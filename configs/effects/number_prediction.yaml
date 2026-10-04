@@ -8,6 +8,12 @@ hypothesis_space:
   min: 1
   max: 100
 prior: uniform
+observations:
+  # Schema v1.5: latency modulation (docs/passive-signals.md).
+  response_latency:
+    fast_ms: 2000
+    slow_ms: 8000
+    floor: 0.6
 termination:
   entropy_threshold_bits: 0.25
   max_turns: 10

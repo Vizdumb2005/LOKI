@@ -1,4 +1,11 @@
-import type { ArchivedSummary, EffectSummary, LedgerStats, SessionView } from "./types";
+import type {
+  ArchivedSummary,
+  EffectSummary,
+  LedgerStats,
+  SessionView,
+  SurveyAnswers,
+  TypingRhythm,
+} from "./types";
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -32,12 +39,30 @@ export const api = {
       latency_ms: latencyMs,
       utterance: utterance,
     }),
+  // Covert turns accept verbatim participant text; the server parses it into
+  // an agreement strength. The text is recorded consent-gated like utterance.
+  // Typing rhythm aggregates (never key content) ride along for fusion.
+  answerFreeText: (
+    sessionId: string,
+    text: string,
+    latencyMs?: number,
+    rhythm?: TypingRhythm | null,
+  ) =>
+    post<SessionView>(`/api/sessions/${sessionId}/answer`, {
+      answer_id: null,
+      free_text: text,
+      latency_ms: latencyMs,
+      typing_rhythm: rhythm ?? null,
+    }),
   observe: (
     sessionId: string,
     observation: { channel: string; question_id: string; answer_id: string; dwell_ms?: number },
   ) => post<SessionView>(`/api/sessions/${sessionId}/observations`, observation),
   outcome: (sessionId: string, correct: boolean) =>
     post<SessionView>(`/api/sessions/${sessionId}/outcome`, { correct }),
+  // Submitting the survey is the consent act (docs/human-trials.md §3).
+  survey: (sessionId: string, answers: SurveyAnswers) =>
+    post<Record<string, unknown>>(`/api/sessions/${sessionId}/survey`, answers),
   archive: (sessionId: string) =>
     post<{ archived: boolean; summary: ArchivedSummary }>(
       `/api/sessions/${sessionId}/archive`,

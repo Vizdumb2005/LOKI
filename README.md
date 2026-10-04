@@ -18,6 +18,58 @@ theatrical presentation. It is not telepathy — the full idea lives in the proj
 | 4 — Policy | participant simulator, bandit, offline evaluation | simulator seed only |
 | 5–7 | in-house models, performance, product | not started |
 
+**ROADMAP phase 2 — Covert Fishing & Dialogue Strategy** (`ROADMAP.md`, the perceived-impact
+prioritization): ✅ done — fishing assertions, agreement-strength responses with soft Bayesian
+updates, and the Method Selection Policy ([`docs/covert-fishing.md`](docs/covert-fishing.md)).
+
+**ROADMAP phase 3 — Multi-Outs & Reveal Planner**: ✅ done — the reveal is now staged through
+pre-planned "outs" ([`docs/reveal-planning.md`](docs/reveal-planning.md)): a **progressive**
+attribute ladder on decisive commits ("…a red card… six or seven… the Seven of Diamonds"), a
+**category-cluster** beat when the top two share a family (a landed hit even if the identity
+misses), a **dual-deduction** beat when two candidates dominate, and one **hesitation** beat
+inside the calibrated doubt window (0.60–0.85 — it only ever adds doubt). Missed reads get an
+**equivocation** reframe line instead of visible backtracking. The prediction and its
+confidence-banded phrasing are untouched — staging moves the reveal moment, not the posterior.
+
+**ROADMAP phase 4 — Choice Architecture & Forcing**: ✅ done — on direct turns with a credible
+favorite (≥ 0.60 posterior mass), the UI applies three biasing primitives toward it
+([`docs/choice-architecture.md`](docs/choice-architecture.md)): warm **saliency** that fades in
+only after ~1.2 s (delayed emphasis onset — countdowns/disabled buttons are deliberately
+rejected), **default positioning** (the salient option moves first), and nothing else: no
+coercion, keyboard untouched. The click remains a plain Bayesian answer; a **defied** force is
+folded into the performance (an equivocation reframe) and the primitives sit out a turn; the
+curtain **discloses** the steering ("this turn: steering toward X"). Simulator gates: accuracy
+within ±0.02 of the forcing-off arm on all effects but sigil (−0.022 at the boundary); force
+success rates 0.77–0.90 in the mechanical noise-concentration model — real priming psychology
+is a human-study question (ROADMAP Phase 6).
+
+**ROADMAP phase 5 — Passive Signals & Multimodal Fusion**: ✅ done — `services/fusion` (a
+placeholder since Phase 0) now fuses the three weak channels into one Bayesian update
+([`docs/passive-signals.md`](docs/passive-signals.md)): **response latency** modulates how much
+a verbal answer is worth (fast ≤ 2 s keeps full reliability; hesitant ≥ 8 s is discounted to
+60% — a guess counts less), and **typing rhythm** on free-text replies (three aggregates:
+time-to-first-key, median inter-key interval, total — never key content, never raw sequences)
+downgrades a hesitant reply's agreement strength one step. Gaze dwell (Phase 2) completes the
+trio. Measured (500 sessions, seed 42, fusion on vs `--no-fusion`):
+
+| effect | accuracy OFF → ON | forced-commit OFF → ON |
+|---|---|---|
+| animal_guess | 0.884 → **0.912** | 0.68 → 0.72 |
+| card_prediction | 0.910 → **0.940** | 0.43 → 0.64 |
+| number_prediction | 0.882 → **0.890** | 0.65 → 0.73 |
+| sigil_forced_choice | 0.962 → **0.986** | 0.04 → 0.12 |
+
+The honest trade: discounted guesses make the MAP land on the truth more often (+0.8 to
++3.0 points on every effect — the first fusion mechanism with a measurable simulated win), but
+weakened evidence gathers fewer bits per turn, so forced commits rise and the mystery gap
+narrows slightly. The hedged reveal band phrases those commits honestly. Calibration of the
+fast/slow/floor knobs on real participants is ROADMAP Phase 6.
+
+```bash
+python -m experiments.run_magic_factor_eval --sessions 500 --seed 42               # fusion on
+python -m experiments.run_magic_factor_eval --sessions 500 --seed 42 --no-fusion   # off arm
+```
+
 ## What Phase 1 contains
 
 - **Four effects** (`configs/effects/*.yaml`): *The Card* (52 hypotheses), *The Number* (1–100),
@@ -60,6 +112,46 @@ browser and are never stored; the camera runs only while questions are on the ta
 explicit opt-in with a visible indicator and a one-click Stop; permission denied means a fully
 functional word-only séance; every observation is a structured event visible in the curtain.
 
+## Phase R2 — covert fishing & the dialogue strategy engine
+
+Instead of only asking explicit questions ("Is your card red, or black?"), LOKI can now make a
+**cold read** ("I get a strong impression here, and it points at Red. Isn't it?") and parse the
+reply in natural language — typed, spoken, or via three agreement buttons ("Yes, exactly" /
+"Sort of…" / "Not really"). A Method Selection Policy mixes the two modes per turn; see
+[`docs/covert-fishing.md`](docs/covert-fishing.md) for the normative spec.
+
+Design constraints kept intact: effects remain formal state machines; agreement updates are
+soft (every hypothesis stays alive — a denial eliminates only the asserted reading); unclear
+replies touch nothing; the reveal never borrows confidence the posterior doesn't have. The
+policy only fishes binary, credible, high-information dimensions, backs off after any miss,
+and rations itself to one read per session — all measured choices, not taste.
+
+**Measured** (1000 simulated sessions, seed 42, gaze_prob 0.5; direct arm = every question
+explicit; visible-bit accounting per [`docs/magic-factor.md`](docs/magic-factor.md) §2.1 —
+covert turns weigh κ·log₂(3), headline κ = 0.25):
+
+| effect | accuracy auto / direct | forced auto / direct | M auto / direct @ κ=0.25 |
+|---|---|---|---|
+| animal_guess | **0.891** / 0.889 | 0.658 / 0.635 | **0.0747** / 0.0734 |
+| card_prediction | **0.911** / 0.905 | 0.409 / 0.255 | **0.1000** / 0.0968 |
+| number_prediction | **0.884** / 0.876 | 0.638 / 0.581 | **0.0748** / 0.0729 |
+| sigil_forced_choice | 0.973 / **0.982** | 0.035 / 0.021 | **0.2318** / 0.2245 |
+
+Honest reading: at κ = 0.25 the mixed policy wins accuracy and the magic factor on three of
+four effects and never loses meaningfully; the price is a higher forced-commit rate on
+question-limited effects (the one-read ration spends a turn that a direct answer would have
+used). The **breakeven is κ\* ≈ 0.33–0.40**: fishing improves the magic factor exactly when
+participants perceive a statement-reaction as less than ~⅓ as interrogating as an explicit
+question — a human-study question (ROADMAP phase 6), not an assumption. The harness reports
+the full κ sweep on every run; κ = 1.0 (fully visible) is the conservative bound under which
+fishing loses everywhere. Reads land 53–68% of the time in simulation (`fishing_affirmation_rate`).
+
+```bash
+python -m experiments.run_magic_factor_eval --sessions 1000 --seed 42   # auto policy + κ sweep
+python -m experiments.run_magic_factor_eval --sessions 1000 --seed 42 --policy direct
+python -m experiments.run_baseline_eval --sessions 400 --seed 42        # direct-mode baseline
+```
+
 ## Quickstart
 
 Backend (Python ≥ 3.11):
@@ -87,14 +179,17 @@ python -m experiments.run_baseline_eval --sessions 500 --seed 42
 python -m experiments.run_baseline_eval --effect card_prediction --reliability 0.8   # noise sweep
 ```
 
-## Recorded baseline (400 sessions, seed 42, per-question YAML reliability ≈ 0.92–0.98)
+## Recorded baseline (direct mode, 400 sessions, seed 42, per-question YAML reliability ≈ 0.92–0.98)
 
 | effect | top-1 accuracy | avg turns | entropy at commit | forced-commit rate |
 |---|---|---|---|---|
-| card_prediction | 0.900 | 5.38 | 0.44 bits | 0.15 |
-| number_prediction | 0.897 | 6.42 | 0.56 bits | 0.54 |
+| card_prediction | 0.922 | 5.30 | 0.46 bits | 0.15 |
+| number_prediction | 0.902 | 6.53 | 0.55 bits | 0.58 |
 | animal_guess | 0.885 | 9.25 | 0.51 bits | 0.63 |
-| sigil_forced_choice | 0.983 | 3.31 | 0.13 bits | 0.02 |
+| sigil_forced_choice | 0.975 | 3.36 | 0.13 bits | 0.03 |
+
+(run `python -m experiments.run_baseline_eval --sessions 400 --seed 42` — `--mode direct` is
+the default so numbers stay comparable across revisions.)
 
 Under fully truthful answers all four effects resolve every hypothesis correctly (enforced by
 tests — 192 exhaustive sessions). The remaining forced commits under noise are inherent: the

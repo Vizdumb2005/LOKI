@@ -1,6 +1,6 @@
-# Spec: Effect Schema (v1.1)
+# Spec: Effect Schema (v1.5)
 
-Status: **Active — Phase 0–2** (versioned; additive changes bump the version below)
+Status: **Active — Phase 0–5** (versioned; additive changes bump the version below)
 
 An **effect** is a formal policy environment — not a conversation. LOKI is built around effects
 (plan §5). This document defines the declarative schema; the normative implementation is the
@@ -26,6 +26,45 @@ observations:                    # non-verbal evidence channels
 - Per-answer `voice: [synonyms]` — spoken tokens the in-browser matcher accepts for that
   answer (e.g. `voice: ["hearts", "heart"]`). Matching is conservative: ambiguous or unmatched
   transcripts submit nothing.
+
+## v1.2 additions (ROADMAP Phase 2 — covert fishing presentation)
+
+Two additive, fully optional per-question fields. They change how a question is PRESENTED and
+answered, never the hypothesis space, the partition rule, or the likelihood model:
+
+```yaml
+questions:
+  - id: q_color
+    fishing: true                # optional, default true — set false to opt out of assertion turns
+    fishing_openers:             # optional, overrides the default assertion bank (services/language/fishing.py)
+      - "There's a warmth to this… {label}, isn't it?"
+```
+
+- `fishing: false` removes the question from the Method Selection Policy's covert candidates;
+  it can then only be asked directly.
+- `fishing_openers` templates MUST contain a `{label}` placeholder (the asserted option's label
+  is interpolated) and MUST NOT name any other option of the question — an assertion may leak
+  only the option it asserts. The loader fails at startup otherwise (YAML 1.1 warning: quote
+  any bare `yes`/`no` strings).
+- Normative behavior of covert turns (agreement scale, soft-update matrix, method-selection
+  policy, measured gates): **docs/covert-fishing.md**.
+
+## v1.5 additions (ROADMAP Phase 5 — latency modulation channel)
+
+An optional top-level `response_latency:` key declares the passive-signal modulation channel
+(docs/passive-signals.md). Unlike the categorical `observations:` channels, latency modulates
+how much the verbal answer itself is worth:
+
+```yaml
+response_latency:
+  fast_ms: 2000        # at or below: the answer keeps its full reliability
+  slow_ms: 8000        # at or above: reliability scaled down to the floor
+  floor: 0.6           # weakened, never inverted
+```
+
+The loader parses this into `EffectDef.latency_channel` (not into the categorical
+`observations` map), validation requires `0 < fast_ms < slow_ms` and `floor ∈ (0, 1]`, and a
+malformed channel fails at startup like any other effect error.
 
 ## Location
 
@@ -81,9 +120,11 @@ before any learned evidence model (plan §7 Stage A, §16).
 
 ## Policy interface
 
-The policy (Phase 1: information gain; later: bandit/RL) selects the next action from:
+The policy (Phase 1: information gain; ROADMAP Phase 2: information gain + method selection;
+later: bandit/RL) selects the next action from:
 
-- `ask(question_id)` — never repeats a question already asked in the session
+- `ask(question_id, mode)` — never repeats a question already asked in the session; `mode` is
+  `direct` (question + options) or `covert` (assertion of one option + agreement scale)
 - `commit()` — reveal the MAP hypothesis
 
 Termination: commit when posterior entropy ≤ `entropy_threshold_bits`, or when `max_turns`

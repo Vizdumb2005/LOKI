@@ -15,6 +15,13 @@ observations:
   gaze_dwell:
     reliability: 0.55
     min_dwell_ms: 400
+  # Schema v1.5: latency modulation (docs/passive-signals.md) — hesitant
+  # answers are discounted toward the floor. The loader moves this into the
+  # engine's modulation channel; it is not a categorical observation.
+  response_latency:
+    fast_ms: 2000
+    slow_ms: 8000
+    floor: 0.6
 questions:
   - id: q_suit
     text: "Which suit holds your card — hearts, diamonds, clubs, or spades?"

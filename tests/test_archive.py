@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from services.api.main import create_app
 from services.effects.loader import load_effects
-from tests.conftest import truthful_answer
+from tests.conftest import truthful_body
 
 EFFECTS_DIR = Path(__file__).resolve().parents[1] / "configs" / "effects"
 REGISTRY = load_effects(EFFECTS_DIR)
@@ -26,11 +26,7 @@ def _play_to_outcome(client: TestClient, effect_id: str, truth: str, correct: bo
         view = client.get(f"/api/sessions/{sid}").json()
         if view["phase"] != "active":
             break
-        question = next(q for q in effect.questions if q.id == view["question_id"])
-        client.post(
-            f"/api/sessions/{sid}/answer",
-            json={"answer_id": truthful_answer(effect, question, truth)},
-        )
+        client.post(f"/api/sessions/{sid}/answer", json=truthful_body(effect, view, truth))
     client.post(f"/api/sessions/{sid}/outcome", json={"correct": correct})
     return sid
 
@@ -98,11 +94,7 @@ def test_archive_requires_outcome_phase(tmp_path):
         view = client.get(f"/api/sessions/{sid}").json()
         if view["phase"] != "active":
             break
-        question = next(q for q in effect.questions if q.id == view["question_id"])
-        client.post(
-            f"/api/sessions/{sid}/answer",
-            json={"answer_id": truthful_answer(effect, question, "AS")},
-        )
+        client.post(f"/api/sessions/{sid}/answer", json=truthful_body(effect, view, "AS"))
     assert client.get(f"/api/sessions/{sid}").json()["phase"] == "revealed"
     assert client.post(f"/api/sessions/{sid}/archive").status_code == 409  # pre-outcome
 
