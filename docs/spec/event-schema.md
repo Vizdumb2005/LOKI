@@ -1,6 +1,6 @@
-# Spec: Event Schema (v1.1)
+# Spec: Event Schema (v1.5)
 
-Status: **Active — Phase 0–2**
+Status: **Active — Phase 0–5**
 
 Every state change in a LOKI session is recorded as a structured event. This is the seed of the
 "structured event bus between components" (plan §9 Backend) and of the end-to-end replay harness
@@ -17,6 +17,41 @@ Every state change in a LOKI session is recorded as a structured event. This is 
   and reach disk only through the explicit archive flow.
 - Raw media is still forbidden in every payload — the observation event carries the *derived*
   signal only (which answer button, how long), never the frames/audio it came from.
+
+## v1.2 additions (ROADMAP Phase 2 — interaction modes)
+
+Additive payload fields; no new event types. Normative behavior: docs/covert-fishing.md.
+
+| event | new fields |
+|---|---|
+| `policy.decision` | `mode` ("direct" \| "covert"), `asserted_answer_id` (null on direct turns); `reason` may additionally be `credible_assertion`, `backoff_after_misses`, `cooldown_after_misses`, `budget_reserve`, `covert_budget_spent` |
+| `hypothesis.updated` | `mode`, `agreement_strength` (null on direct turns; one of `strong_yes`, `lean_yes`, `unclear`, `lean_no`, `strong_no`), `asserted_answer_id` (null on direct turns); `utterance` now records any verbatim participant text — spoken transcript OR typed `free_text` reply — under the same consent semantics as before |
+| `observation.recorded` | unchanged; observations apply to direct turns only (a covert turn shows agreement reactions, not options to dwell on) |
+
+## v1.3 additions (ROADMAP Phase 3 — reveal planning)
+
+Additive payload fields; no new event types. Normative behavior: docs/reveal-planning.md.
+
+| event | new fields |
+|---|---|
+| `policy.decision` | `reframe` (`"missed"` \| `"unclear"` \| `null`) — the equivocation beat that opens this turn after a missed/unclear covert read |
+| `effect.revealed` | `reveal_path` (`progressive` \| `category_cluster` \| `dual_deduction` \| `plain`), `reveal_candidates` (top-k hypothesis ids the staging considered), `stages` (structured descriptors `{kind, attr, label}` — attribute/category/deduction beats; no prose in events) |
+
+## v1.4 additions (ROADMAP Phase 4 — choice architecture)
+
+Additive payload fields; no new event types. Normative behavior: docs/choice-architecture.md.
+
+| event | new fields |
+|---|---|
+| `policy.decision` | `force_target` (option id the UI emphasizes on direct turns, or `null`) — the click remains a plain Bayesian answer; `SessionView` exposes it as `salient_option_id` and the curtain discloses it |
+
+## v1.5 additions (ROADMAP Phase 5 — passive-signal fusion)
+
+Additive payload fields; no new event types. Normative behavior: docs/passive-signals.md.
+
+| event | new fields |
+|---|---|
+| `hypothesis.updated` | `reliability_effective` (the latency-modulated reliability of the verbal answer when the effect declares a `response_latency` channel and a latency was measured, else `null` — a slow answer is discounted toward the channel floor, a fast one keeps its base), `agreement_strength_effective` (the typing-rhythm-downgraded strength when a hesitant free-text reply was softened one step, else `null`), `typing_rhythm` (`{first_key_ms, median_interval_ms, total_ms}` — aggregate numbers only, never key content or raw timing sequences; rides the free_text consent semantics) |
 
 ## Normative implementation
 

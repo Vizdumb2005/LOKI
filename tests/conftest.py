@@ -45,3 +45,36 @@ def truthful_answer(effect, question, hypothesis_id: str) -> str:
     matches = [a.id for a in question.answers if a.predicate.matches(attrs)]
     assert len(matches) == 1, f"expected exactly one match for {hypothesis_id}: {matches}"
     return matches[0]
+
+
+def direct_only(effect):
+    """A copy of `effect` with covert fishing disabled on every question."""
+    return effect.model_copy(
+        update={"questions": [q.model_copy(update={"fishing": False}) for q in effect.questions]}
+    )
+
+
+def truthful_response(session, effect, hypothesis_id: str, **kwargs) -> None:
+    """Deterministic truthful response to the session's current turn, whatever
+    its mode (docs/covert-fishing.md): the truthful option id on direct turns;
+    strong_yes / strong_no on covert turns according to whether the assertion
+    holds for the hidden hypothesis."""
+    question = session.current_question
+    assert question is not None
+    if session.current_mode == "covert":
+        asserted = next(a for a in question.answers if a.id == session.asserted_answer_id)
+        holds = asserted.predicate.matches(effect.hypotheses[hypothesis_id])
+        session.respond_agreement("strong_yes" if holds else "strong_no", **kwargs)
+    else:
+        session.answer(truthful_answer(effect, question, hypothesis_id), **kwargs)
+
+
+def truthful_body(effect, view, hypothesis_id: str) -> dict:
+    """Request body for a deterministic truthful response to the current turn
+    of an API session view, whatever its mode."""
+    question = next(q for q in effect.questions if q.id == view["question_id"])
+    if view.get("mode") == "covert":
+        asserted = next(a for a in question.answers if a.label == view["asserted_label"])
+        holds = asserted.predicate.matches(effect.hypotheses[hypothesis_id])
+        return {"answer_id": "strong_yes" if holds else "strong_no"}
+    return {"answer_id": truthful_answer(effect, question, hypothesis_id)}

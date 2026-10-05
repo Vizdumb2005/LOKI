@@ -9,20 +9,28 @@ plan is `C:\Users\viren\Downloads\idea.md` (outside this workspace). Read it bef
 architecture, effects, models, or privacy behavior.
 
 **Current state:** Phase 0 (specifications), Phase 1 (Akinator-style engine + web UI + consent
-ledger), and the Phase 2 perception slice (gaze dwell + voice answers, in-browser) are
-implemented. Two text-only effects plus The Card with a `gaze_dwell` channel; FastAPI surface;
-React frontend with in-browser MediaPipe gaze and Whisper ASR; seeded evaluation CLI including
-a gaze-augmented mode. Remaining Phase 2 work and later phases per README's status table.
-`services/capture|fusion` are still placeholder docstrings — perception lives client-side in
-`apps/web/src/perception/`.
+ledger), the Phase 2 perception slice (gaze dwell + voice answers, in-browser), and ROADMAP
+Phases 2 (covert fishing — `docs/covert-fishing.md`), 3 (multi-outs & reveal planning —
+`docs/reveal-planning.md`), 4 (choice architecture — `docs/choice-architecture.md`), and 5
+(passive-signal fusion — `docs/passive-signals.md`) are implemented. Four effects (The Card
+with a `gaze_dwell` channel; all four with `response_latency` modulation); FastAPI surface;
+React frontend with in-browser gaze + voice, covert-turn UI, staged multi-out reveal,
+disclosed choice-architecture emphasis, and typing-rhythm telemetry; seeded evaluation CLIs
+(`run_baseline_eval`, `run_magic_factor_eval` with κ sweep, reveal-path/forcing/fusion arms).
+All ROADMAP phases through 5 are done; next unchecked: Phase 6 — RL dialogue policy + human
+trials. `services/capture|vision|audio` remain placeholder docstrings; `services/fusion` holds
+the passive-signal modulation engine (the fuller session-state fusion of idea.md Phase 3 is
+still future work).
 
 ## Verified commands (repo root; Windows Git Bash uses `.venv/Scripts/`)
 
 ```bash
 python -m venv .venv && pip install -e ".[dev]"
 python -m pytest                                              # full suite
-python -m experiments.run_baseline_eval --sessions 500 --seed 42
+python -m experiments.run_baseline_eval --sessions 500 --seed 42          # direct mode default
 python -m experiments.run_baseline_eval --effect card_prediction --gaze-prob 0.7
+python -m experiments.run_magic_factor_eval --sessions 1000 --seed 42     # auto policy + κ sweep
+python -m experiments.run_magic_factor_eval --sessions 1000 --seed 42 --policy direct
 python -m uvicorn services.api.main:app --port 8000           # backend on :8000
 cd apps/web && npm install && npm run dev                     # frontend on :5173, proxies /api
 npm run build                                                 # tsc strict + vite build
@@ -30,14 +38,21 @@ npm test                                                      # vitest (dwell + 
 python -m ruff check . && python -m ruff format .             # lint + format
 ```
 
-Test suite: `tests/test_engine.py` resolves **every** hypothesis of both effects with truthful
-answers — keep that invariant when touching tracker, policy, engine, or effect YAMLs. After any
-effect change, run the eval CLI; a rising `forced_commit_rate` means the question set is too
-weak (this metric has already caught two under-informative effects).
+Test suite: `tests/test_engine.py` resolves **every** hypothesis of all four effects (192
+exhaustive sessions) with truthful responses under the MIXED method policy — covert turns get
+deterministic decisive reactions (`tests/conftest.py: truthful_response`). Keep that invariant
+when touching tracker, policy, engine, method selection, or effect YAMLs. After any effect or
+policy change, run the eval CLIs; a rising `forced_commit_rate` means the question set or the
+method mix is too weak (this metric has already caught two under-informative effects and
+calibrated the covert-turn ration).
 
 ## Software engineering lifecycle (how to work here)
 
-The project is implemented strictly by phases, each leaving the system measurable and runnable:
+Two plans govern the work: `idea.md` (authoritative architecture/privacy/lifecycle) and
+`ROADMAP.md` (prioritization by perceived mind-reading impact — the "magic factor"). When they
+conflict on ordering, `ROADMAP.md` decides what to build next; `idea.md` decides the
+non-negotiable boundaries. The project is implemented strictly by phases, each leaving the
+system measurable and runnable:
 
 - **Phase 0 — Specification first.** Before feature code: effects schema, event schema, model
   registry, license registry, evaluation protocol. Specs live in `docs/` and `configs/`.
@@ -130,6 +145,36 @@ experiments/, configs/, tests/, docs/
   shipped once; don't reintroduce it.
 - **Language renderer boundary:** templates receive structured state only. Never pass raw
   posteriors or hypotheses into user-facing phrasing decisions beyond the confidence band.
+- **Covert fishing invariants (ROADMAP Phase 2, `docs/covert-fishing.md`):**
+  (a) agreement updates are SOFT — every likelihood vector must be strictly positive; an
+  update that zeroes a hypothesis is a bug (the tracker rejects it, and tests enforce it);
+  (b) a fishing assertion may name ONLY the option it asserts — the default bank is
+  sweep-tested against every registered effect and YAML `fishing_openers` are
+  loader-validated for leaked labels;
+  (c) observations apply to direct turns only, and `unclear` responses advance the turn
+  without touching the posterior — don't "fix" either;
+  (d) κ (covert visibility weight) is a documented modeling assumption with a measured
+  breakeven (κ\* ≈ 0.33–0.40) — never tune it to flatter a result; the harness always prints
+  the full sweep and the κ=1.0 conservative bound.
+- **Reveal planning boundary (ROADMAP Phase 3, `docs/reveal-planning.md`):** the reveal PATH
+  is chosen in `services/policy/reveal_planner.py` (it depends on posterior spread — a
+  decision); `services/language/reveal_planner.py` only STAGES the chosen plan. Hesitation
+  exists solely in the 0.60–0.85 doubt window and only adds doubt; the banded identity line
+  is always the final word. Equivocation reframes render engine-recorded state (kind + missed
+  label) and must not claim narrowing the update didn't perform.
+- **Choice architecture is presentation only (ROADMAP Phase 4, `docs/choice-architecture.md`):**
+  the salient option changes the UI (saliency, ordering, delayed emphasis) and NOTHING else —
+  a click is still a plain Bayesian answer; never let the emphasis alter likelihoods or the
+  posterior. Nothing is ever disabled (no countdowns — accessibility + perceived freedom);
+  the curtain must keep disclosing the steering. The simulator's `force_susceptibility`
+  models only the mechanical noise shift — do not tune it to manufacture a win.
+- **Passive signals are weak modulations (ROADMAP Phase 5, `docs/passive-signals.md`):**
+  latency discounts a hesitant answer's reliability (`reliability_effective` ≤ the question's
+  base — a signal can weaken evidence, never strengthen it) and typing rhythm downgrades a
+  hesitant free-text reply one step toward `unclear`. Only `services/fusion` computes the
+  modulations (pure functions) and only the engine applies them. Telemetry is aggregates
+  only — key content and raw timing sequences never leave the browser, and the signals are
+  game evidence only, never profiling inputs.
 - **Sessions are memory-only by design** (privacy, plan §11) — do not "fix" persistence without
   a consent story.
 - **Vite dev server binds `localhost` (IPv6 `::1`)** on this machine — curl

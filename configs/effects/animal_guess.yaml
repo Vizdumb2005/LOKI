@@ -46,6 +46,12 @@ hypothesis_space:
     - {id: ant,       name: Ant,       cls: insect,   water: false, fly: false, big: false, meat: false, dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
     - {id: mosquito,  name: Mosquito,  cls: insect,   water: false, fly: true,  big: false, meat: true,  dom: false, farm: false, night: false, eggs: true,  stripes: false, venom: false, horns: false, ridden: false, hibernates: false, climbs: false}
 prior: uniform
+observations:
+  # Schema v1.5: latency modulation (docs/passive-signals.md).
+  response_latency:
+    fast_ms: 2000
+    slow_ms: 8000
+    floor: 0.6
 termination:
   entropy_threshold_bits: 0.25
   max_turns: 12

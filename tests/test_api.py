@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.conftest import truthful_answer
+from tests.conftest import truthful_body as _truthful_body
 
 
 def test_health(client):
@@ -69,9 +69,7 @@ def test_full_truthful_lifecycle(client, card_effect):
         view = client.get(f"/api/sessions/{session_id}").json()
         if view["phase"] != "active":
             break
-        question = next(q for q in card_effect.questions if q.id == view["question_id"])
-        answer_id = truthful_answer(card_effect, question, "7D")
-        payload = {"answer_id": answer_id}
+        payload = _truthful_body(card_effect, view, "7D")
         if not latency_sent:
             payload["latency_ms"] = 412.0
             latency_sent = True
@@ -82,7 +80,9 @@ def test_full_truthful_lifecycle(client, card_effect):
     assert view["phase"] == "revealed"
     assert view["prediction"]["hypothesis_id"] == "7D"
     assert view["prediction"]["label"] == "Seven of Diamonds"
-    assert view["prediction"]["confidence"] > 0.9
+    # Covert agreement updates are deliberately softer than direct answers, so
+    # mixed-policy commits sit a little lower than the direct-only ~0.95.
+    assert view["prediction"]["confidence"] > 0.75
 
     trajectory = client.get(f"/api/sessions/{session_id}/trajectory").json()
     event_types = [e["type"] for e in trajectory["events"]]
@@ -103,9 +103,10 @@ def test_full_truthful_lifecycle(client, card_effect):
 
 
 def test_answer_validation_errors(client, card_effect):
-    session_id = client.post("/api/sessions", json={"effect_id": "card_prediction"}).json()[
-        "session_id"
-    ]
+    session_id = client.post(
+        "/api/sessions", json={"effect_id": "card_prediction", "condition": "b"}
+    ).json()["session_id"]
+    # Covert first turn: option ids are not agreement strengths.
     bad_answer = client.post(f"/api/sessions/{session_id}/answer", json={"answer_id": "purple"})
     assert bad_answer.status_code == 400
 
@@ -114,16 +115,114 @@ def test_answer_validation_errors(client, card_effect):
         view = client.get(f"/api/sessions/{session_id}").json()
         if view["phase"] != "active":
             break
-        q = next(q for q in card_effect.questions if q.id == view["question_id"])
         client.post(
-            f"/api/sessions/{session_id}/answer",
-            json={"answer_id": truthful_answer(card_effect, q, "AS")},
+            f"/api/sessions/{session_id}/answer", json=_truthful_body(card_effect, view, "AS")
         )
     conflict = client.post(f"/api/sessions/{session_id}/answer", json={"answer_id": "hearts"})
     assert conflict.status_code == 409
+
+
+def test_covert_turn_view_scale(client):
+    view = client.post(
+        "/api/sessions", json={"effect_id": "card_prediction", "condition": "b"}
+    ).json()
+    assert view["phase"] == "active"
+    assert view["mode"] == "covert"
+    assert view["asserted_label"]
+    assert [o["id"] for o in view["options"]] == ["strong_yes", "lean_yes", "lean_no"]
+
+
+def test_free_text_response_parsed_server_side(client):
+    session_id = client.post(
+        "/api/sessions", json={"effect_id": "card_prediction", "condition": "b"}
+    ).json()["session_id"]
+    answered = client.post(
+        f"/api/sessions/{session_id}/answer",
+        json={"free_text": "hmm, not really", "latency_ms": 1700.0},
+    )
+    assert answered.status_code == 200
+    trajectory = client.get(f"/api/sessions/{session_id}/trajectory").json()
+    updated = [e for e in trajectory["events"] if e["type"] == "hypothesis.updated"]
+    payload = updated[-1]["payload"]
+    assert payload["mode"] == "covert"
+    assert payload["agreement_strength"] == "lean_no"
+    assert payload["asserted_answer_id"]
+    assert payload["utterance"] == "hmm, not really"  # verbatim text, consent-gated
+
+
+def test_free_text_requires_active_covert_turn(client, card_effect):
+    session_id = client.post(
+        "/api/sessions", json={"effect_id": "card_prediction", "condition": "b"}
+    ).json()["session_id"]
+    for _ in range(card_effect.termination.max_turns + 1):
+        view = client.get(f"/api/sessions/{session_id}").json()
+        if view["phase"] != "active":
+            break
+        client.post(
+            f"/api/sessions/{session_id}/answer", json=_truthful_body(card_effect, view, "AS")
+        )
+    late = client.post(f"/api/sessions/{session_id}/answer", json={"free_text": "yes"})
+    assert late.status_code == 400
+
+
+def test_answer_requires_id_or_free_text(client):
+    session_id = client.post(
+        "/api/sessions", json={"effect_id": "card_prediction", "condition": "b"}
+    ).json()["session_id"]
+    empty = client.post(f"/api/sessions/{session_id}/answer", json={})
+    assert empty.status_code == 400
+
+
+def test_revealed_view_carries_reveal_staging(client, card_effect):
+    session_id = client.post(
+        "/api/sessions", json={"effect_id": "card_prediction", "condition": "b"}
+    ).json()["session_id"]
+    for _ in range(card_effect.termination.max_turns + 1):
+        view = client.get(f"/api/sessions/{session_id}").json()
+        if view["phase"] != "active":
+            break
+        client.post(
+            f"/api/sessions/{session_id}/answer",
+            json=_truthful_body(card_effect, view, "7D"),
+        )
+    view = client.get(f"/api/sessions/{session_id}").json()
+    assert view["phase"] == "revealed"
+    assert view["reveal_path"] in (
+        "progressive",
+        "category_cluster",
+        "dual_deduction",
+        "plain",
+    )
+    for stage in view["reveal_stages"]:
+        assert stage["kind"] in ("attribute", "category", "deduction", "hesitation")
+        assert stage["text"]
+    assert view["message"]  # the banded identity line always remains
 
 
 def test_unknown_session_404(client):
     assert client.get("/api/sessions/nope").status_code == 404
     assert client.post("/api/sessions/nope/answer", json={"answer_id": "x"}).status_code == 404
     assert client.post("/api/sessions/nope/outcome", json={"correct": True}).status_code == 404
+
+
+def test_session_or_404_helper(card_effect):
+    from fastapi import HTTPException
+
+    from services.api.main import _session_or_404
+    from services.api.store import SessionStore
+    from services.effects.engine import EffectSession
+    from services.language.renderer import LanguageRenderer
+
+    store = SessionStore()
+    session = EffectSession(card_effect, LanguageRenderer())
+    store.add(session)
+
+    # Found session
+    retrieved = _session_or_404(store, session.session_id)
+    assert retrieved is session
+
+    # Missing session raises 404
+    with pytest.raises(HTTPException) as exc_info:
+        _session_or_404(store, "non_existent_id")
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "session not found"

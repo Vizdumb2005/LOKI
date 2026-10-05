@@ -14,31 +14,31 @@ This roadmap outlines the prioritized phases to transform LOKI from an Akinator-
 ---
 
 ## Phase 2 — Covert Fishing & Dialogue Strategy Engine (High Impact)
-- [ ] **Covert Fishing Dialogue Templates**: Create phrase collections in `services/language/` that disguise entropy-reducing questions as intuitive statements.
-- [ ] **Response Signal Extractor**: Parse user responses for agreement strength ("Yes", "Sort of", "Not really") to apply soft Bayesian likelihood updates.
-- [ ] **Method Selection Policy**: Implement the policy selector in `services/policy/` to choose dynamically between direct inference, covert fishing, and progressive narrowing.
+- [x] **Covert Fishing Dialogue Templates**: Create phrase collections in `services/language/` that disguise entropy-reducing questions as intuitive statements. (`services/language/fishing.py`; per-question YAML overrides; leak-checked assertions)
+- [x] **Response Signal Extractor**: Parse user responses for agreement strength ("Yes", "Sort of", "Not really") to apply soft Bayesian likelihood updates. (`services/language/response_signals.py` + `services/effects/agreement.py`; five-level scale, never hard-eliminates)
+- [x] **Method Selection Policy**: Implement the policy selector in `services/policy/` to choose dynamically between direct inference, covert fishing, and progressive narrowing. (`services/policy/method_selection.py`; measured gates in `docs/covert-fishing.md` §6 — breakeven κ\* ≈ 0.33–0.40)
 
 ---
 
 ## Phase 3 — Multi-Outs & Reveal Planner (High Impact)
-- [ ] **Multi-Branch State Machine**: Build state machine support in `services/effects/` to track multiple plausible candidate branches ($H_{\text{top}}$).
-- [ ] **Reveal Planner**: Create `services/language/reveal_planner.py` to stage progressive reveals (Category $\to$ Attribute $\to$ Identity) and inject strategic hesitation/faked uncertainty.
-- [ ] **Equivocation Engine**: Add support for dynamic choice re-framing when choices are ambiguous or unexpected.
+- [x] **Multi-Branch State Machine**: Build state machine support in `services/effects/` to track multiple plausible candidate branches ($H_{\text{top}}$). (top-k candidates carried through the commit: `RevealPlan.candidates`, `effect.revealed.reveal_candidates`, deduction staging over top-2)
+- [x] **Reveal Planner**: Create `services/language/reveal_planner.py` to stage progressive reveals (Category $\to$ Attribute $\to$ Identity) and inject strategic hesitation/faked uncertainty. (staging lives in `services/language/reveal_planner.py`; the path CHOICE lives in `services/policy/reveal_planner.py` to keep the LOKI-Language boundary — see `docs/reveal-planning.md` §1)
+- [x] **Equivocation Engine**: Add support for dynamic choice re-framing when choices are ambiguous or unexpected. (`services/language/equivocation.py`; engine queues a reframe after missed/unclear reads, event schema v1.3 records it)
 
 ---
 
 ## Phase 4 — Psychological Forcing & Interactive Choice Architecture (Medium/High Impact)
-- [ ] **Choice Biasing UI Primitives**: Build React frontend components in `apps/web/` that apply visual saliency, default positioning, and timing limits to bias choices toward high-prior targets.
-- [ ] **Forcing Failure Recovery**: Implement automatic fallback paths when participants defy a force.
+- [x] **Choice Biasing UI Primitives**: Build React frontend components in `apps/web/` that apply visual saliency, default positioning, and timing limits to bias choices toward high-prior targets. (`apps/web/src/lib/forcing.ts` + Session rendering: saliency glow with 1.2 s delayed onset, salient option moved first; hard timing limits rejected as coercive — see `docs/choice-architecture.md` §2)
+- [x] **Forcing Failure Recovery**: Implement automatic fallback paths when participants defy a force. (defiance → equivocation reframe + one-turn emphasis cooldown, `policy.decision.force_target` in event schema v1.4; the Bayesian update never changes)
 
 ---
 
 ## Phase 5 — Multimodal Fusion & Passive Signal Integration (Medium Impact)
-- [ ] **Latency & Keystroke Telemetry**: Capture response delay and typing rhythm in `apps/web/` as additional weak observation evidence.
-- [ ] **Multimodal Fusion Engine**: Integrate gaze dwell, response latency, and verbal transcripts into structured Bayesian likelihood updates.
+- [x] **Latency & Keystroke Telemetry**: Capture response delay and typing rhythm in `apps/web/` as additional weak observation evidence. (typing rhythm = three aggregates — time-to-first-key, median inter-key interval, total — never key content, never raw sequences; `apps/web/src/lib/telemetry.ts` + `AnswerRequest.typing_rhythm`)
+- [x] **Multimodal Fusion Engine**: Integrate gaze dwell, response latency, and verbal transcripts into structured Bayesian likelihood updates. (`services/fusion/engine.py` — pure modulation functions; latency discounts a hesitant answer's reliability, typing rhythm downgrades a hesitant reply's agreement strength one step; measured gains in `docs/passive-signals.md` §4 — accuracy up on all four effects, forced-commit rate the honest cost)
 
 ---
 
 ## Phase 6 — Continuous Reinforcement Learning & Human Trials
-- [ ] **RL Dialogue Policy**: Train a contextual bandit / RL agent in `simulator/` to optimize the Magic Factor score against synthetic participant profiles.
-- [ ] **A/B Human Evaluation Suite**: Run double-blind human trials comparing baseline Akinator dialogue against the AI Mentalist performance engine.
+- [ ] **RL Dialogue Policy**: Train a contextual bandit / RL agent in `simulator/` to optimize the Magic Factor score against synthetic participant profiles. (Simulator and training harness built: `simulator/bandit.py`, `experiments/run_bandit_eval.py` — active)
+- [ ] **A/B Human Evaluation Suite**: Run double-blind human trials comparing baseline Akinator dialogue against the AI Mentalist performance engine. (Double-blind apparatus built: `services/api/main.py`, `experiments/run_human_trial.py`, `experiments/analyze_ab.py` — awaiting human participant records)

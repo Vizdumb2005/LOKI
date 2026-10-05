@@ -6,6 +6,7 @@ effects must fail at load time, never mid-session.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from typing import Any, Literal
 
@@ -84,6 +85,13 @@ class Question(BaseModel):
     text: str
     answers: list[AnswerOption] = Field(min_length=2)
     reliability: float = Field(default=0.9, gt=0.0, le=1.0)
+    # Schema v1.2: covert-fishing presentation (docs/covert-fishing.md).
+    # `fishing: false` opts a question out of assertion-style turns;
+    # `fishing_openers` overrides the default assertion bank. An opener must
+    # carry a {label} placeholder and must not name any OTHER option of this
+    # question — an assertion may leak only the option it asserts.
+    fishing: bool = True
+    fishing_openers: list[str] = Field(default_factory=list)
 
     @field_validator("answers")
     @classmethod
@@ -92,6 +100,30 @@ class Question(BaseModel):
         if len(set(ids)) != len(ids):
             raise ValueError(f"answer ids must be unique within a question: {ids}")
         return answers
+
+    @model_validator(mode="after")
+    def _validate_fishing_openers(self) -> "Question":
+        if not self.fishing and self.fishing_openers:
+            raise ValueError(f"question '{self.id}': fishing_openers set but fishing is false")
+        for template in self.fishing_openers:
+            if "{label}" not in template:
+                raise ValueError(
+                    f"question '{self.id}': fishing opener must contain a '{{label}}' placeholder"
+                )
+            try:
+                template.format(label="x")
+            except (KeyError, IndexError, ValueError) as exc:
+                raise ValueError(
+                    f"question '{self.id}': fishing opener {template!r} does not interpolate: {exc}"
+                ) from exc
+            static = template.replace("{label}", " ").lower()
+            for answer in self.answers:
+                if re.search(rf"\b{re.escape(answer.label.lower())}\b", static):
+                    raise ValueError(
+                        f"question '{self.id}': fishing opener names another answer label "
+                        f"'{answer.label}' — an assertion must not leak the option set"
+                    )
+        return self
 
 
 class Termination(BaseModel):
@@ -112,6 +144,26 @@ class ObservationChannel(BaseModel):
     min_dwell_ms: int = Field(default=400, ge=0)
 
 
+class LatencyChannel(BaseModel):
+    """Response-latency modulation channel (schema v1.5, docs/passive-signals.md).
+
+    Unlike categorical observation channels, latency modulates how much the
+    verbal answer itself is worth: fast answers keep their full reliability,
+    hesitant ones are discounted toward the floor. Declared per effect under
+    the ``response_latency:`` YAML key and parsed by the loader.
+    """
+
+    fast_ms: float = Field(gt=0.0)
+    slow_ms: float = Field(gt=0.0)
+    floor: float = Field(gt=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def _validate_bounds(self) -> "LatencyChannel":
+        if self.fast_ms >= self.slow_ms:
+            raise ValueError("latency channel requires fast_ms < slow_ms")
+        return self
+
+
 class EffectDef(BaseModel):
     id: str
     title: str
@@ -120,6 +172,10 @@ class EffectDef(BaseModel):
     prior: dict[str, float] | None = None
     questions: list[Question] = Field(min_length=1)
     observations: dict[str, ObservationChannel] = Field(default_factory=dict)
+    # Schema v1.5: latency modulation (docs/passive-signals.md). Parsed from
+    # the `response_latency:` YAML key by the loader — a different shape than
+    # the categorical observation channels, hence its own field.
+    latency_channel: LatencyChannel | None = None
     termination: Termination
 
     @field_validator("questions")
@@ -139,6 +195,13 @@ class EffectDef(BaseModel):
         return self
 
     # -- likelihood model (Stage A: interpretable, non-neural) -----------------
+
+    def without_fishing(self) -> "EffectDef":
+        """A copy with covert fishing disabled on every question — used by
+        direct-only comparison runs (docs/covert-fishing.md)."""
+        return self.model_copy(
+            update={"questions": [q.model_copy(update={"fishing": False}) for q in self.questions]}
+        )
 
     def likelihoods(
         self,
