@@ -6,8 +6,11 @@
     <meta name="description" content="LOKI — a digital mentalist. Probabilistic inference dressed as magic." />
     <title>LOKI — Digital Mentalist</title>
     <style>
-      /* avoid a white flash before the app CSS loads */
+      /* avoid a theme flash before the app CSS loads */
       html { background: #0b0d10; }
+      @media (prefers-color-scheme: light) {
+        html { background: #f5f1e6; }
+      }
     </style>
   </head>
   <body>
