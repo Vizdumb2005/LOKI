@@ -21,6 +21,8 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from uuid import uuid4
 
+from services.brain.contract import BrainSelector
+from services.brain.contract import validate as validate_brain
 from services.effects.agreement import agreement_likelihoods
 from services.effects.events import Event, EventType
 from services.effects.models import EffectDef, Question
@@ -85,6 +87,7 @@ class EffectSession:
         selector: TurnSelector | None = None,
         performance: bool = True,
         condition: str | None = None,
+        decide: BrainSelector | None = None,
     ) -> None:
         self.session_id = session_id or uuid4().hex[:12]
         self.effect = effect
@@ -92,6 +95,10 @@ class EffectSession:
         # ROADMAP Phase 6: the turn selector is injectable (RL policies,
         # A/B conditions); the default is the hand-designed method policy.
         self._selector = selector or _default_turn_selector
+        # Mission Phase 3: optional Brain. Same inputs as the selector, but
+        # the choice passes through the hard action contract and is logged.
+        # None = legacy path, byte-identical behavior.
+        self._decide = decide
         # Condition A of the A/B suite: the performance layer (emphasis,
         # staged reveals, reframes) switches off; the Bayesian engine is
         # identical (docs/human-trials.md §2).
@@ -337,7 +344,19 @@ class EffectSession:
     # -- internals ---------------------------------------------------------------
 
     def _select_next_turn(self) -> None:
-        plan = self._selector(self.effect, self.tracker.posterior, set(self.asked), self._fishing)
+        brain_action: str | None = None
+        if self._decide is not None:
+            decision = validate_brain(
+                self._decide(self.effect, self.tracker.posterior, set(self.asked), self._fishing),
+                self.effect,
+                set(self.asked),
+            )
+            brain_action = decision.action.value
+            plan = decision.to_turn_plan()
+        else:
+            plan = self._selector(
+                self.effect, self.tracker.posterior, set(self.asked), self._fishing
+            )
         if plan is None:
             self._commit(CommitReason.NO_INFORMATIVE_QUESTION)
             return
@@ -360,6 +379,7 @@ class EffectSession:
             EventType.POLICY_DECISION,
             {
                 "action": "ask",
+                "brain_action": brain_action,
                 "mode": plan.mode,
                 "question_id": plan.question_id,
                 "asserted_answer_id": plan.asserted_answer_id,
