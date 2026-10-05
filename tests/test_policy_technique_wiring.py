@@ -8,7 +8,6 @@ from pathlib import Path
 
 from services.effects.loader import load_effects
 from services.effects.techniques import (
-    Technique,
     TechniqueDataset,
     load_techniques,
 )

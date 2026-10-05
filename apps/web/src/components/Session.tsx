@@ -435,6 +435,12 @@ export function Session({
 
       {session.phase === "outcome" && (
         <div className="again">
+          <p className="curtain-note">
+            Debrief — LOKI is a research prototype investigating the digitalization of
+            mentalism. It uses exact Bayesian inference, information-gain queries, and
+            structured theatrical timing. It possesses no telepathic or supernatural
+            capabilities.
+          </p>
           {archived ? (
             <span className="archived-note">Kept in the ledger — the fates remember.</span>
           ) : (

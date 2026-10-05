@@ -21,6 +21,22 @@ It is not telepathy — the full idea lives in the project plan (`../idea.md` in
 | 5 — Passive Signal Fusion | response latency modulation, typing rhythm aggregates, gaze dwell | ✅ done |
 | 6 — RL Policy & Human Trials | contextual bandit simulator built, double-blind A/B apparatus built (awaiting human trials) | 🔄 active |
 
+## Project status — teamwork milestones (2026-10-05)
+
+| Milestone | Scope | Status |
+|---|---|---|
+| M1 — Hygiene, Resilience & Core Engine | UTF-8 CLI guards, orphan-survey deletion fix, adversarial + concurrency suites | ✅ PASS (gate: 2 reviewers, 2 challengers, auditor CLEAN) |
+| E2E track — Tiers 1–4 | 235 opaque-box tests (features, boundaries, interactions, séance scenarios) | ✅ CERTIFIED (235/235) |
+| M2 — Metric Foundation & Visibility | breakeven κ\* inlined, 2,000-resample Likert estimator, κ sweep on every run | ✅ PASS (gate: 2 reviewers, 2 challengers, auditor CLEAN) |
+| M3 — Research Questions Evidence Matrix | all 16 §13 RQs on canonical tiers; magic-factor/covert docs harmonized | ✅ PASS WITH NOTES (Q12 traceability + Q3 66% arithmetic logged as follow-ups) |
+| M4 — Human Trial & Evaluation Pipeline | double-blind CLI + web séance runners, consent-gated ledger, A/B stats incl. replay willingness, web debrief disclosure | ✅ PASS WITH NOTES (485 tests green; 0 human rows — trials pending) |
+| M5 — Final E2E & Adversarial Hardening | full suite green, Tier-5 challenger pass, `analyze()` junk-row hardening, Likert 0/8 test | ✅ PASS (485/485, 0 ruff; Tier-5: no pipeline-reachable holes) |
+
+Run a human trial: `python -m experiments.run_human_trial --effect card_prediction`
+(follow the consent prompts; debrief is shown to every participant), then
+`python -m experiments.analyze_ab` for Mann-Whitney U, Welch's t, and 95% bootstrap CIs.
+`python -m experiments.analyze_ab --simulated 60` exercises the pipeline on labeled placeholder data.
+
 **ROADMAP phase 2 — Covert Fishing & Dialogue Strategy** (`ROADMAP.md`, the perceived-impact
 prioritization): ✅ done — fishing assertions, agreement-strength responses with soft Bayesian
 updates, and the Method Selection Policy ([`docs/covert-fishing.md`](docs/covert-fishing.md)).

@@ -2,8 +2,8 @@
 
 Reads the consented survey records from the archive database and compares
 conditions on the §4 Likert instrument (perceived impossibility, freedom,
-naturalness, surprise) with bootstrap CIs and rank/parametric tests, plus the
-objective protocol as manipulation checks.
+naturalness, surprise) with bootstrap CIs and rank/parametric tests, plus
+replay willingness rates and the objective protocol as manipulation checks.
 
     python -m experiments.analyze_ab                        # real records
     python -m experiments.analyze_ab --simulated 60         # labeled placeholder pilot
@@ -89,6 +89,15 @@ def welch_t(a: list[float], b: list[float]) -> float:
     return (statistics.mean(a) - statistics.mean(b)) / denom
 
 
+def _num(value: object) -> float | None:
+    """Coerce a survey field to float; hand-built rows with junk become skips."""
+    try:
+        result = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return result
+
+
 def analyze(rows: list[dict]) -> dict:
     by_condition: dict[str, dict[str, list[float]]] = {"a": {}, "b": {}}
     for row in rows:
@@ -96,7 +105,9 @@ def analyze(rows: list[dict]) -> dict:
         if condition not in by_condition:
             continue
         for item in ITEMS:
-            by_condition[condition].setdefault(item, []).append(row[item])
+            value = _num(row.get(item))
+            if value is not None:
+                by_condition[condition].setdefault(item, []).append(value)
     report: dict = {"n": {c: len(by_condition[c].get(ITEMS[0], [])) for c in by_condition}}
     for item in ITEMS:
         a = by_condition["a"].get(item, [])
@@ -111,6 +122,23 @@ def analyze(rows: list[dict]) -> dict:
             "mann_whitney_u": round(u, 1),
             "p_normal_approx": round(p_u, 4),
         }
+    # replay willingness (binary 0/1): rate comparison with bootstrap CIs
+    repeat: dict[str, list[float]] = {"a": [], "b": []}
+    for row in rows:
+        condition = row.get("condition")
+        value = _num(row.get("willing_repeat"))
+        if condition in repeat and value is not None:
+            repeat[condition].append(value)
+    report["willing_repeat"] = {
+        "rate_a": round(statistics.mean(repeat["a"]), 3) if repeat["a"] else None,
+        "rate_b": round(statistics.mean(repeat["b"]), 3) if repeat["b"] else None,
+        "ci_a": tuple(round(x, 3) for x in bootstrap_ci(repeat["a"]))
+        if repeat["a"]
+        else None,
+        "ci_b": tuple(round(x, 3) for x in bootstrap_ci(repeat["b"]))
+        if repeat["b"]
+        else None,
+    }
     # manipulation checks (objective protocol)
     for condition in ("a", "b"):
         rows_c = [
@@ -186,6 +214,8 @@ def main() -> int:
             f"{r['welch_t']:>7.2f}{r['mann_whitney_u']:>9.1f}{r['p_normal_approx']:>7.3f}"
         )
     print(f"\nmanipulation checks: accuracy A={report['accuracy_a']}, B={report['accuracy_b']}")
+    wr = report["willing_repeat"]
+    print(f"willing to repeat: rate A={wr['rate_a']} {wr['ci_a']}, B={wr['rate_b']} {wr['ci_b']}")
     return 0
 
 

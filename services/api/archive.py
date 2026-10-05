@@ -146,12 +146,14 @@ class SessionArchive:
                 return False
             with contextlib.closing(self._connect()) as conn:
                 with conn:  # transaction
-                    cursor = conn.execute(
+                    cursor_sess = conn.execute(
                         "DELETE FROM sessions WHERE session_id = ?", (session_id,)
                     )
                     # deletion control covers every trace, surveys included
-                    conn.execute("DELETE FROM surveys WHERE session_id = ?", (session_id,))
-                deleted = cursor.rowcount > 0
+                    cursor_surv = conn.execute(
+                        "DELETE FROM surveys WHERE session_id = ?", (session_id,)
+                    )
+                deleted = (cursor_sess.rowcount > 0) or (cursor_surv.rowcount > 0)
         return deleted
 
     # -- read paths -------------------------------------------------------------

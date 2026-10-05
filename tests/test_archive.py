@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from services.api.archive import SessionArchive
 from services.api.main import create_app
 from services.effects.loader import load_effects
 from tests.conftest import truthful_body
@@ -106,3 +107,62 @@ def test_archive_unknown_session_404(tmp_path):
     client = _client(tmp_path)
     assert client.post("/api/sessions/nope/archive").status_code == 404
     assert client.delete("/api/archive/nope").status_code == 404
+
+
+def test_delete_orphan_survey_without_archived_session(tmp_path):
+    """Directive §19 deletion control: deleting a session that submitted a survey
+    without archiving the gameplay trajectory must delete the survey and return 204."""
+    db_path = tmp_path / "data" / "sessions.db"
+    client = _client(tmp_path)
+    sid = _play_to_outcome(client, "card_prediction", "AS", correct=True)
+
+    # Participant submits survey but does NOT archive trajectory
+    survey_payload = {
+        "impossibility": 6,
+        "freedom": 5,
+        "naturalness": 7,
+        "surprise": 4,
+        "willing_repeat": True,
+    }
+    resp = client.post(f"/api/sessions/{sid}/survey", json=survey_payload)
+    assert resp.status_code == 201
+
+    # Verify session trajectory is not in /api/archive, but survey exists in db
+    assert client.get("/api/archive").json() == []
+    archive = SessionArchive(db_path)
+    surveys_before = archive.survey_rows()
+    assert len(surveys_before) == 1
+    assert surveys_before[0]["session_id"] == sid
+
+    # Deletion control must succeed with 204 No Content
+    del_resp = client.delete(f"/api/archive/{sid}")
+    assert del_resp.status_code == 204
+
+    # Verify survey is completely purged from ledger
+    assert archive.survey_rows() == []
+
+    # Subsequent deletion must return 404 (already deleted)
+    assert client.delete(f"/api/archive/{sid}").status_code == 404
+
+
+def test_session_archive_delete_orphan_survey_direct(tmp_path):
+    """Direct SessionArchive unit test for orphan survey deletion."""
+    db_path = tmp_path / "data" / "sessions.db"
+    archive = SessionArchive(db_path)
+    answers = {
+        "impossibility": 5,
+        "freedom": 4,
+        "naturalness": 6,
+        "surprise": 5,
+        "willing_repeat": True,
+    }
+    archive.save_survey("orphan_sid", "b", answers, created_at="2026-10-04T00:00:00Z")
+    assert len(archive.survey_rows()) == 1
+
+    # First delete returns True and purges survey
+    assert archive.delete("orphan_sid") is True
+    assert len(archive.survey_rows()) == 0
+
+    # Second delete returns False
+    assert archive.delete("orphan_sid") is False
+

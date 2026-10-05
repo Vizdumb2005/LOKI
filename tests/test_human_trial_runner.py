@@ -1,8 +1,5 @@
 """Integration test for human trial runner and database archive pipeline (§18, Job e)."""
 
-import io
-from pathlib import Path
-
 from experiments.analyze_ab import analyze
 from experiments.run_human_trial import run_session
 from services.api.archive import SessionArchive

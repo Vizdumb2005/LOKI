@@ -35,6 +35,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
+from experiments.estimate_visibility import compute_breakeven_kappa
 from services.effects.engine import CommitReason, EffectSession, Phase
 from services.effects.loader import load_effects
 from services.language.renderer import LanguageRenderer
@@ -61,13 +62,15 @@ def evaluate_magic_factor(
     gaze_prob: float = 0.0,
     kappa: float = HEADLINE_KAPPA,
     force_susceptibility: float = 0.0,
+    baseline_direct: dict | None = None,
 ):
     """Run the method-selection policy against truthful-noisy participants and
     report the full magic-factor protocol. ``kappa`` is the visibility weight
     applied to covert turns; ``kappa_sweep`` recomputes the accounting for the
     whole range from the recorded interaction modes (no re-simulation).
     ``force_susceptibility`` models the mechanical choice shift under the
-    choice-architecture emphasis (docs/choice-architecture.md §5)."""
+    choice-architecture emphasis (docs/choice-architecture.md §5).
+    ``baseline_direct`` provides direct arm metrics to compute empirical breakeven κ*."""
     renderer = LanguageRenderer()
     correct = 0
     turns: list[int] = []
@@ -175,6 +178,28 @@ def evaluate_magic_factor(
         }
 
     headline = account(kappa)
+    sweep_accounts = [account(k) for k in KAPPA_SWEEP]
+
+    kappa_star = None
+    if baseline_direct is not None:
+        direct_bits_auto = next(
+            (s["avg_visible_bits"] for s in sweep_accounts if s["kappa"] == 0.0),
+            0.0,
+        )
+        acc_direct = baseline_direct.get("top1_accuracy", 0.0)
+        direct_bits_direct = baseline_direct.get(
+            "avg_visible_bits_used",
+            baseline_direct.get("avg_visible_bits", 0.0),
+        )
+        covert_turns = covert_responses / sessions
+        kappa_star = compute_breakeven_kappa(
+            accuracy,
+            acc_direct,
+            direct_bits_auto,
+            direct_bits_direct,
+            covert_turns,
+        )
+
     return {
         "effect_id": effect.id,
         "sessions": sessions,
@@ -207,7 +232,8 @@ def evaluate_magic_factor(
         "avg_visible_bits_used": headline["avg_visible_bits"],
         "avg_information_mystery_gap_bits": headline["avg_information_mystery_gap_bits"],
         "magic_factor_score": headline["magic_factor_score"],
-        "kappa_sweep": [account(k) for k in KAPPA_SWEEP],
+        "breakeven_kappa": kappa_star,
+        "kappa_sweep": sweep_accounts,
     }
 
 
@@ -246,6 +272,14 @@ def main() -> int:
         "fusion OFF arm (docs/passive-signals.md §4)",
     )
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        default=None,
+        help="path to direct baseline JSON metrics (e.g. "
+        "experiments/outputs/mf_direct_1000.json). If omitted, runs direct baseline "
+        "alongside auto or reads precomputed baseline for 1000 sessions.",
+    )
     parser.add_argument("--json", type=Path, default=None)
     args = parser.parse_args()
 
@@ -255,6 +289,49 @@ def main() -> int:
     if unknown:
         parser.error(f"unknown effect(s): {unknown}; available: {list(registry)}")
 
+    baseline_by_effect: dict[str, dict] = {}
+    if args.policy == "auto":
+        if args.baseline and args.baseline.is_file():
+            try:
+                raw_baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
+                for entry in raw_baseline:
+                    if isinstance(entry, dict) and "effect_id" in entry:
+                        baseline_by_effect[entry["effect_id"]] = entry
+            except Exception as err:
+                print(
+                    f"Warning: Failed to load baseline from {args.baseline}: {err}",
+                    file=sys.stderr,
+                )
+        elif args.sessions == 1000:
+            std_base = REPO_ROOT / "experiments" / "outputs" / "mf_direct_1000.json"
+            if std_base.is_file():
+                try:
+                    raw_baseline = json.loads(std_base.read_text(encoding="utf-8"))
+                    for entry in raw_baseline:
+                        if isinstance(entry, dict) and "effect_id" in entry:
+                            baseline_by_effect[entry["effect_id"]] = entry
+                except Exception:
+                    pass
+
+        missing_baselines = [eid for eid in effect_ids if eid not in baseline_by_effect]
+        if missing_baselines:
+            rng_direct = random.Random(args.seed)
+            for eid in effect_ids:
+                eff_direct = registry[eid].without_fishing()
+                if args.no_fusion:
+                    eff_direct = eff_direct.model_copy(update={"latency_channel": None})
+                base_eval = evaluate_magic_factor(
+                    eff_direct,
+                    args.sessions,
+                    args.reliability,
+                    rng_direct,
+                    gaze_prob=args.gaze_prob,
+                    kappa=args.kappa,
+                    force_susceptibility=args.force_susceptibility,
+                )
+                if eid in missing_baselines:
+                    baseline_by_effect[eid] = base_eval
+
     rng = random.Random(args.seed)
     results = []
     for effect_id in effect_ids:
@@ -263,6 +340,7 @@ def main() -> int:
             effect = effect.without_fishing()
         if args.no_fusion:
             effect = effect.model_copy(update={"latency_channel": None})
+        base_match = baseline_by_effect.get(effect_id) if args.policy == "auto" else None
         results.append(
             evaluate_magic_factor(
                 effect,
@@ -272,6 +350,7 @@ def main() -> int:
                 gaze_prob=args.gaze_prob,
                 kappa=args.kappa,
                 force_susceptibility=args.force_susceptibility,
+                baseline_direct=base_match,
             )
         )
 
@@ -303,6 +382,53 @@ def main() -> int:
             for a in r["kappa_sweep"]
         )
         print(f"  {r['effect_id']:<22}{cells}")
+
+    if args.policy == "auto":
+        print("\nEmpirical breakeven κ* (auto policy vs direct baseline):")
+        header_p1 = (
+            f"  {'effect':<22}  {'acc(auto)':>9}  {'acc(dir)':>9}  "
+            f"{'vis_dir(auto)':>13}  {'vis(dir)':>9}  {'covert_T':>8}"
+        )
+        headline_label = f"verdict @ headline κ={args.kappa}"
+        header_p2 = f"  {'κ* breakeven':>12}    {headline_label:<28}"
+        be_header = f"{header_p1}{header_p2}"
+        print(be_header)
+        print("  " + "-" * (len(be_header) - 2))
+        for r in results:
+            eid = r["effect_id"]
+            base = baseline_by_effect.get(eid)
+            k_star = r.get("breakeven_kappa")
+            acc_dir_str = f"{base['top1_accuracy']:>9.3f}" if base else f"{'N/A':>9}"
+            vis_dir_auto = next(
+                (s["avg_visible_bits"] for s in r["kappa_sweep"] if s["kappa"] == 0.0),
+                0.0,
+            )
+            vis_dir_base = (
+                base.get("avg_visible_bits_used", base.get("avg_visible_bits", 0.0))
+                if base
+                else 0.0
+            )
+            vis_base_str = f"{vis_dir_base:>9.3f}" if base else f"{'N/A':>9}"
+            k_star_str = f"{k_star:>12.4f}" if k_star is not None else f"{'N/A':>12}"
+
+            if k_star is None:
+                verdict = "N/A"
+            elif args.kappa <= k_star:
+                verdict = f"auto wins ({args.kappa:.2f} <= {k_star:.4f})"
+            else:
+                verdict = f"direct wins ({args.kappa:.2f} > {k_star:.4f})"
+
+            row_p1 = (
+                f"  {eid:<22}  {r['top1_accuracy']:>9.3f}  {acc_dir_str}  "
+                f"{vis_dir_auto:>13.3f}  {vis_base_str}  {r['avg_covert_turns']:>8.2f}"
+            )
+            row_p2 = f"  {k_star_str}    {verdict:<28}"
+            print(f"{row_p1}{row_p2}")
+    else:
+        print(
+            "\nEmpirical breakeven κ*: N/A "
+            "(direct policy evaluated; breakeven compares auto vs direct)"
+        )
 
     print("\nreveal paths (share of sessions | accuracy within path):")
     for r in results:
